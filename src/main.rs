@@ -4,13 +4,13 @@ extern crate pulldown_cmark;
 use self::MarkdownError::*;
 use pulldown_cmark::{Alignment, Event, Options, Parser, Tag, OPTION_ENABLE_FOOTNOTES,
                      OPTION_ENABLE_TABLES};
+use std::borrow::Cow;
 use std::error::Error;
 use std::fmt;
 use std::io::{self, BufRead, Read, Write};
-use std::borrow::Cow;
-use std::sync::{Arc, mpsc};
-use std::sync::mpsc::Sender;
+use std::sync::{mpsc, Arc};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::Sender;
 use std::thread;
 
 fn main() {
@@ -34,9 +34,7 @@ impl Ctx {
 
 impl Default for Ctx {
     fn default() -> Self {
-        Ctx {
-            nest_lvl: 0
-        }
+        Ctx { nest_lvl: 0 }
     }
 }
 
@@ -53,11 +51,10 @@ fn run() -> Result<(), MarkdownError> {
     io::stdin().read_to_string(&mut buffer)?;
 
     // make parser
-    let mut p = Parser::new_ext(&buffer, opts)
-            .map(|event| match event {
-                Event::InlineHtml(html) | Event::Html(html) => Event::Text(html),
-                _ => event,
-            });
+    let mut p = Parser::new_ext(&buffer, opts).map(|event| match event {
+        Event::InlineHtml(html) | Event::Html(html) => Event::Text(html),
+        _ => event,
+    });
 
     let mut ctx = Ctx::default();
 
@@ -67,18 +64,17 @@ fn run() -> Result<(), MarkdownError> {
             Event::Start(tag) => {
                 ctx.increment();
                 start_tag(tag, tx.clone());
-            },
+            }
             Event::End(tag) => {
                 ctx.decrement();
                 end_tag(tag, tx.clone());
-            },
+            }
             Event::Text(text) => write_text(text, tx.clone()),
-//            Event::Html(html) | Event::InlineHtml(html) => write_text(html, tx), // don't handle html now
+            // Event::Html(html) | Event::InlineHtml(html) => write_text(html, tx),
             Event::SoftBreak => soft_break(),
             Event::HardBreak => hard_break(),
             Event::FootnoteReference(name) => footnote(name),
-            _ => panic!("html and inline html converted to text, this is unreachable")
-            
+            _ => panic!("html and inline html converted to text, this is unreachable"),
         }
     }
 
