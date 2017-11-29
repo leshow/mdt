@@ -6,8 +6,12 @@ use pulldown_cmark::{Alignment, Event, Options, Parser, Tag, OPTION_ENABLE_FOOTN
                      OPTION_ENABLE_TABLES};
 use std::error::Error;
 use std::fmt;
-use std::io::{self, BufRead, Read};
+use std::io::{self, BufRead, Read, Write};
 use std::borrow::Cow;
+use std::sync::{Arc, mpsc};
+use std::sync::mpsc::Sender;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::thread;
 
 fn main() {
     if let Err(e) = run() {
@@ -15,7 +19,31 @@ fn main() {
     }
 }
 
+struct Ctx {
+    nest_lvl: i32,
+}
+
+impl Ctx {
+    pub fn increment(&mut self) {
+        self.nest_lvl += 1;
+    }
+    pub fn decrement(&mut self) {
+        self.nest_lvl -= 1;
+    }
+}
+
+impl Default for Ctx {
+    fn default() -> Self {
+        Ctx {
+            nest_lvl: 0
+        }
+    }
+}
+
 fn run() -> Result<(), MarkdownError> {
+    let done = Arc::new(AtomicBool::new(false));
+    let (tx, rx) = mpsc::channel();
+
     let mut opts = Options::empty();
     opts.insert(OPTION_ENABLE_TABLES);
     opts.insert(OPTION_ENABLE_FOOTNOTES);
@@ -25,27 +53,54 @@ fn run() -> Result<(), MarkdownError> {
     io::stdin().read_to_string(&mut buffer)?;
 
     // make parser
-    let mut p = Parser::new_ext(&buffer, opts);
+    let mut p = Parser::new_ext(&buffer, opts)
+            .map(|event| match event {
+                Event::InlineHtml(html) | Event::Html(html) => Event::Text(html),
+                _ => event,
+            });
+
+    let mut ctx = Ctx::default();
 
     // process events
     while let Some(event) = p.next() {
         match event {
-            Event::Start(tag) => start_tag(tag),
-            Event::End(tag) => end_tag(tag),
-            Event::Text(text) => write_text(text),
-            Event::Html(html) | Event::InlineHtml(html) => write_text(html), // don't handle html now
+            Event::Start(tag) => {
+                ctx.increment();
+                start_tag(tag, tx.clone());
+            },
+            Event::End(tag) => {
+                ctx.decrement();
+                end_tag(tag, tx.clone());
+            },
+            Event::Text(text) => write_text(text, tx.clone()),
+//            Event::Html(html) | Event::InlineHtml(html) => write_text(html, tx), // don't handle html now
             Event::SoftBreak => soft_break(),
             Event::HardBreak => hard_break(),
             Event::FootnoteReference(name) => footnote(name),
+            _ => panic!("html and inline html converted to text, this is unreachable")
+            
         }
     }
+
+    let done = done.clone();
+    thread::spawn(move || {
+        while done.load(Ordering::Relaxed) {
+            let output = match rx.recv() {
+                Ok(text) => text,
+                Err(_) => panic!("Received error"),
+            };
+            io::stdout().write(output);
+        }
+    });
+
     Ok(())
 }
-fn start_tag<'a>(tag: Tag<'a>) {}
 
-fn end_tag<'a>(tag: Tag<'a>) {}
+fn start_tag<'a, T>(tag: Tag<'a>, sender: Sender<T>) {}
 
-fn write_text<'a>(text: Cow<'a, str>) {}
+fn end_tag<'a, T>(tag: Tag<'a>, sender: Sender<T>) {}
+
+fn write_text<'a, T>(text: Cow<'a, str>, sender: Sender<T>) {}
 
 fn soft_break() {}
 fn hard_break() {}
@@ -75,5 +130,8 @@ impl Error for MarkdownError {
         match *self {
             Io(ref e) => e.description(),
         }
+    }
+    fn cause(&self) -> Option<&Error> {
+        None
     }
 }
