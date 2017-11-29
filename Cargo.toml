@@ -4,6 +4,4 @@ version = "0.1.0"
 authors = ["Evan Cameron <cameron.evan@gmail.com>"]
 
 [dependencies]
-pulldown-cmark="0.1.0"
-failure = "0.1.0"
-failure_derive = "0.1.0"
+pulldown-cmark= { version ="0.1.0", default-features = false }

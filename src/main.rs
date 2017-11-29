@@ -1,32 +1,55 @@
-extern crate failure;
-#[macro_use]
-extern crate failure_derive;
+extern crate pulldown_cmark;
 
-use std::io::BufRead;
-use failure::{err_msg, Error}; // Any type that derives Fail can be cast into Error
+// Any type that derives Fail can be cast into Error
+use self::MarkdownError::*;
+use pulldown_cmark::{Alignment, Event, Options, Parser, Tag, OPTION_ENABLE_FOOTNOTES,
+                     OPTION_ENABLE_TABLES};
+use std::error::Error;
+use std::fmt;
+use std::io::{self, BufRead, Read};
 
-#[derive(Debug, Fail)]
-#[fail(display = "Utf8 error at index `{}`", index)]
-pub struct Utf8Error {
-    index: usize,
+fn main() {
+    if let Err(e) = run() {
+        println!("{:?}", e);
+    }
 }
 
+fn run() -> Result<(), MarkdownError> {
+    let mut opts = Options::empty();
+    opts.insert(OPTION_ENABLE_TABLES);
+    opts.insert(OPTION_ENABLE_FOOTNOTES);
 
-fn test() -> Result<(), Error> {
-    let stdin = std::io::stdin();
-    for line in stdin.lock().lines() {
-        let line = line?;
-        if line.chars().all(|c| c.is_whitespace()) {
-            break;
-        }
-        if !line.starts_with("$") {
-            return Err(err_msg("Didnt start with `$`"));
-        }
-        println!("{}", &line[1..]);
-    }
+    let mut buffer = String::new();
+    io::stdin().read_to_string(&mut buffer)?;
+
+    let p = Parser::new_ext(&buffer, opts);
     Ok(())
 }
 
-fn main() {
-    println!("Hello, world!");
+// Error
+#[derive(Debug)]
+pub(crate) enum MarkdownError {
+    Io(io::Error),
+}
+
+impl From<io::Error> for MarkdownError {
+    fn from(e: io::Error) -> MarkdownError {
+        Io(e)
+    }
+}
+
+impl fmt::Display for MarkdownError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Io(ref e) => write!(f, "IO Error: {}", e),
+        }
+    }
+}
+
+impl Error for MarkdownError {
+    fn description(&self) -> &str {
+        match *self {
+            Io(ref e) => e.description(),
+        }
+    }
 }
