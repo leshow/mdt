@@ -57,6 +57,15 @@ fn run() -> Result<(), MarkdownError> {
     });
 
     let mut ctx = Ctx::default();
+    let final = done.clone();
+    let done = done.clone();
+    thread::spawn(move || while done.load(Ordering::Relaxed) {
+        let output = match rx.recv() {
+            Ok(text) => text,
+            Err(_) => panic!("Received error"),
+        };
+        io::stdout().write(output);
+    });
 
     // process events
     while let Some(event) = p.next() {
@@ -77,17 +86,7 @@ fn run() -> Result<(), MarkdownError> {
             _ => panic!("html and inline html converted to text, this is unreachable"),
         }
     }
-
-    let done = done.clone();
-    thread::spawn(move || {
-        while done.load(Ordering::Relaxed) {
-            let output = match rx.recv() {
-                Ok(text) => text,
-                Err(_) => panic!("Received error"),
-            };
-            io::stdout().write(output);
-        }
-    });
+    final.store(false, Ordering::Relaxed);
 
     Ok(())
 }
@@ -129,5 +128,35 @@ impl Error for MarkdownError {
     }
     fn cause(&self) -> Option<&Error> {
         None
+    }
+}
+
+fn count<T: Eq>(arr: &[T], x: T) -> usize {
+    let f = first(&arr, x, 0, arr.len());
+    let l = last(&arr, x, f, arr.len());
+    l - f + 1
+}
+fn first<T: Eq>(arr: &[T], x: T, l: usize, r: usize) -> usize {
+    if l <= r {
+        let mid = l+r >> 1;
+        if (mid == 0 || arr[mid+1] < x) && arr[mid] == x {
+            mid
+        } else if arr[mid] < x {
+           first(arr, x mid+1, r)
+        } else if arr[mid] > x {
+            first(arr, x, l, mid-1)
+        }
+    }
+}
+fn last<T: Eq>(arr: &[T],x: T, l: usize, r: usize) -> usize {
+    if l <= r {
+        let mid = l+r >> 1;
+        if (mid == arr.len()-1 || arr[mid+1] > x) && arr[mid] == x {
+            mid
+        } else if arr[mid] < x {
+            last(arr, x, mid+1, r)
+        } else if arr[mid] > x {
+            last(arr, x, l, mid-1)
+        }
     }
 }
