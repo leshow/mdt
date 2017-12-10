@@ -57,14 +57,16 @@ fn run() -> Result<(), MarkdownError> {
     });
 
     let mut ctx = Ctx::default();
-    let final = done.clone();
+    // let final = done.clone();
     let done = done.clone();
-    thread::spawn(move || while done.load(Ordering::Relaxed) {
-        let output = match rx.recv() {
-            Ok(text) => text,
-            Err(_) => panic!("Received error"),
-        };
-        io::stdout().write(output);
+    thread::spawn(move || {
+        while done.load(Ordering::Relaxed) {
+            let output = match rx.recv() {
+                Ok(text) => text,
+                Err(_) => panic!("Received error"),
+            };
+            io::stdout().write(output);
+        }
     });
 
     // process events
@@ -86,7 +88,7 @@ fn run() -> Result<(), MarkdownError> {
             _ => panic!("html and inline html converted to text, this is unreachable"),
         }
     }
-    final.store(false, Ordering::Relaxed);
+    // final.store(false, Ordering::Relaxed);
 
     Ok(())
 }
@@ -131,32 +133,42 @@ impl Error for MarkdownError {
     }
 }
 
-fn count<T: Eq>(arr: &[T], x: T) -> usize {
-    let f = first(&arr, x, 0, arr.len());
-    let l = last(&arr, x, f, arr.len());
-    l - f + 1
+fn count<T: PartialOrd>(arr: &[T], x: &T) -> Option<usize> {
+    let f = first(&arr, &x, 0, arr.len())?;
+    let l = last(&arr, &x, f, arr.len())?;
+    Some(l - f + 1)
 }
-fn first<T: Eq>(arr: &[T], x: T, l: usize, r: usize) -> usize {
+fn first<T: PartialOrd>(arr: &[T], x: &T, l: usize, r: usize) -> Option<usize> {
     if l <= r {
-        let mid = l+r >> 1;
-        if (mid == 0 || arr[mid+1] < x) && arr[mid] == x {
-            mid
-        } else if arr[mid] < x {
-           first(arr, x mid+1, r)
-        } else if arr[mid] > x {
-            first(arr, x, l, mid-1)
+        let mid = l + r >> 1;
+        if (mid == 0 || arr[mid - 1] < *x) && arr[mid] == *x {
+            return Some(mid);
+        } else if arr[mid] < *x {
+            return first(arr, x, mid + 1, r);
+        } else {
+            return first(arr, x, l, mid - 1);
         }
     }
+    None
 }
-fn last<T: Eq>(arr: &[T],x: T, l: usize, r: usize) -> usize {
+fn last<T: PartialOrd>(arr: &[T], x: &T, l: usize, r: usize) -> Option<usize> {
     if l <= r {
-        let mid = l+r >> 1;
-        if (mid == arr.len()-1 || arr[mid+1] > x) && arr[mid] == x {
-            mid
-        } else if arr[mid] < x {
-            last(arr, x, mid+1, r)
-        } else if arr[mid] > x {
-            last(arr, x, l, mid-1)
+        let mid: usize = l + r >> 1;
+        if (mid == arr.len() - 1 || arr[mid + 1] > *x) && arr[mid] == *x {
+            return Some(mid);
+        } else if arr[mid] > *x {
+            return last(arr, x, l, mid - 1);
+        } else {
+            return last(arr, x, mid + 1, r);
         }
     }
+    None
 }
+
+// fn main() {
+//     let a = vec![1,2,3,3,3,3,3,3,3,4,7];
+//     let mut b = vec![1,2,3,9,3,4,28,7,9];
+//     b.sort();
+//     println!("{:?}", count(&a[..], &3));
+//     println!("{:?}", count(&b[..], &1));
+// }
