@@ -5,3 +5,4 @@ authors = ["Evan Cameron <cameron.evan@gmail.com>"]
 
 [dependencies]
 pulldown-cmark= { version ="0.1.0", default-features = false }
+log = "0.3"

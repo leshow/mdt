@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate log;
 extern crate pulldown_cmark;
 
 // Any type that derives Fail can be cast into Error
