@@ -1,17 +1,16 @@
-extern crate html2text;
 extern crate pulldown_cmark;
 extern crate termion;
 
 // Any type that derives Fail can be cast into Error
 use self::MarkdownError::*;
-use html2text::from_read;
 use pulldown_cmark::{Alignment, Event, Options, Parser, Tag, OPTION_ENABLE_FOOTNOTES,
                      OPTION_ENABLE_TABLES};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
-use std::io::{self, BufRead, Read, Write};
+use std::fmt::Write;
+use std::io::{self, Read};
 
 mod escape;
 use escape::{escape_href, escape_html};
@@ -32,7 +31,7 @@ fn run() -> Result<(), MarkdownError> {
     io::stdin().read_to_string(&mut buffer)?;
 
     // make parser
-    let mut p = Parser::new_ext(&buffer, opts).map(|event| match event {
+    let p = Parser::new_ext(&buffer, opts).map(|event| match event {
         Event::InlineHtml(html) | Event::Html(html) => Event::Text(html),
         _ => event,
     });

@@ -5,5 +5,4 @@ authors = ["Evan Cameron <cameron.evan@gmail.com>"]
 
 [dependencies]
 pulldown-cmark= { version ="0.1.0", default-features = false }
-html2text = "0.1.6"
 termion = "1.5.1"
