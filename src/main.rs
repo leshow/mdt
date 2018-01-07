@@ -11,6 +11,8 @@ use std::error::Error;
 use std::fmt;
 use std::fmt::Write;
 use std::io::{self, Read};
+use termion::color;
+use termion::style;
 
 mod escape;
 use escape::{escape_href, escape_html};
@@ -35,8 +37,8 @@ fn run() -> Result<(), MarkdownError> {
         Event::InlineHtml(html) | Event::Html(html) => Event::Text(html),
         _ => event,
     });
-
-    let mut ctx = Ctx::new(p);
+    let term_size = termion::terminal_size()?;
+    let mut ctx = Ctx::new(p, term_size);
     ctx.run();
     print!("{}", ctx.buf);
     Ok(())
@@ -50,6 +52,7 @@ enum TableState {
 struct Ctx<I> {
     iter: I,
     header_lvl: i32,
+    term_size: (u16, u16),
     buf: String,
     table_state: TableState,
     table_alignments: Vec<Alignment>,
@@ -60,12 +63,13 @@ impl<'a, 'b, I> Ctx<I>
 where
     I: Iterator<Item = Event<'a>>,
 {
-    pub fn new(iter: I) -> Ctx<I> {
+    pub fn new(iter: I, term_size: (u16, u16)) -> Ctx<I> {
         Ctx {
             iter,
             buf: String::new(),
             table_state: TableState::Head,
             header_lvl: 0,
+            term_size,
             table_alignments: Vec::new(),
             table_cell_index: 0,
         }
@@ -99,7 +103,10 @@ where
         self.header_lvl -= 1;
     }
     fn fresh_line(&mut self) {
-        self.buf.push_str("\n");
+        self.buf.push('\n');
+    }
+    fn width(&self) -> usize {
+        self.term_size.1 as usize
     }
     fn start_tag(&mut self, tag: Tag<'a>, numbers: &mut HashMap<Cow<'a, str>, usize>) {
         match tag {
@@ -107,7 +114,8 @@ where
                 self.fresh_line();
             }
             Tag::Rule => {
-                self.buf.push_str(&format!("{}", termion::style::Underline));
+                let w = self.width();
+                self.buf.push_str(&format!("{:-width$}", width = w));
             }
             Tag::Header(level) => {
                 self.fresh_line();
@@ -120,7 +128,7 @@ where
                 self.buf.push_str("<table>");
             }
             Tag::TableHead => {
-                //self.table_state = TableState::Head;
+                self.table_state = TableState::Head;
                 self.buf.push_str("<thead><tr>");
             }
             Tag::TableRow => {
@@ -208,7 +216,45 @@ where
             }
         }
     }
-    fn end_tag(&mut self, tag: Tag<'a>) {}
+    fn end_tag(&mut self, tag: Tag<'a>) {
+        match tag {
+            Tag::Paragraph => self.buf.push_str("</p>\n"),
+            Tag::Rule => (),
+            Tag::Header(level) => {
+                self.buf.push_str("</h");
+                self.buf.push((b'0' + level as u8) as char);
+                self.buf.push_str(">\n");
+            }
+            Tag::Table(_) => {
+                self.buf.push_str("</tbody></table>\n");
+            }
+            Tag::TableHead => {
+                self.buf.push_str("</tr></thead><tbody>\n");
+                self.table_state = TableState::Body;
+            }
+            Tag::TableRow => {
+                self.buf.push_str("</tr>\n");
+            }
+            Tag::TableCell => {
+                match self.table_state {
+                    TableState::Head => self.buf.push_str("</th>"),
+                    TableState::Body => self.buf.push_str("</td>"),
+                }
+                self.table_cell_index += 1;
+            }
+            Tag::BlockQuote => self.buf.push_str("</blockquote>\n"),
+            Tag::CodeBlock(_) => self.buf.push_str("</code></pre>\n"),
+            Tag::List(Some(_)) => self.buf.push_str("</ol>\n"),
+            Tag::List(None) => self.buf.push_str("</ul>\n"),
+            Tag::Item => self.buf.push_str("</li>\n"),
+            Tag::Emphasis => self.buf.push_str("</em>"),
+            Tag::Strong => self.buf.push_str("</strong>"),
+            Tag::Code => self.buf.push_str("</code>"),
+            Tag::Link(_, _) => self.buf.push_str("</a>"),
+            Tag::Image(_, _) => (), // shouldn't happen, handled in start
+            Tag::FootnoteDefinition(_) => self.buf.push_str("</div>\n"),
+        }
+    }
     fn write_text(&mut self, text: Cow<'a, str>) {}
     fn soft_break(&mut self) {}
     fn hard_break(&mut self) {}

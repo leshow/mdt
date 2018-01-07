@@ -1,4 +1,6 @@
-# mdt
+# mdt (WIP)
+
+---
 
 mdt is a markdown previewer for the terminal. It takes markdown as input from `stdin` and prints it out formatted for easy reading.
 
@@ -10,6 +12,8 @@ It uses [pulldown_cmark](http://www.github.com/google/pulldown-cmark) for parsin
 $ cat README.md | mdt
 [...]
 ```
+
+or, more tersely,
 
 ```sh
 $ mdt < README.md
