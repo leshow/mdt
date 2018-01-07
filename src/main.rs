@@ -38,6 +38,7 @@ fn run() -> Result<(), MarkdownError> {
         _ => event,
     });
     let term_size = termion::terminal_size()?;
+    println!("{:?}", term_size);
     let mut ctx = Ctx::new(p, term_size);
     ctx.run();
     print!("{}", ctx.buf);
@@ -59,7 +60,7 @@ struct Ctx<I> {
     table_cell_index: usize,
 }
 
-impl<'a, 'b, I> Ctx<I>
+impl<'a, I> Ctx<I>
 where
     I: Iterator<Item = Event<'a>>,
 {
@@ -106,7 +107,7 @@ where
         self.buf.push('\n');
     }
     fn width(&self) -> usize {
-        self.term_size.1 as usize
+        self.term_size.0 as usize
     }
     fn start_tag(&mut self, tag: Tag<'a>, numbers: &mut HashMap<Cow<'a, str>, usize>) {
         match tag {
@@ -115,10 +116,17 @@ where
             }
             Tag::Rule => {
                 let w = self.width();
-                self.buf.push_str(&format!("{:-width$}", width = w));
+                let r = "-".repeat(w);
+                self.buf.push_str(&r);
             }
             Tag::Header(level) => {
                 self.fresh_line();
+                let steeze = match level {
+                    1 => format!("{}", color::Fg(color::White)),
+                    2 => format!("{}", color::Fg(color::Magenta)),
+                    _ => format!("{}", color::Fg(color::Cyan)),
+                };
+                self.buf.push_str(&steeze);
                 self.buf.push_str("<h");
                 self.buf.push((b'0' + level as u8) as char);
                 self.buf.push('>');
@@ -221,6 +229,7 @@ where
             Tag::Paragraph => self.buf.push_str("</p>\n"),
             Tag::Rule => (),
             Tag::Header(level) => {
+                self.buf.push_str(&format!("{}", color::Fg(color::Reset)));
                 self.buf.push_str("</h");
                 self.buf.push((b'0' + level as u8) as char);
                 self.buf.push_str(">\n");
@@ -255,10 +264,14 @@ where
             Tag::FootnoteDefinition(_) => self.buf.push_str("</div>\n"),
         }
     }
-    fn write_text(&mut self, text: Cow<'a, str>) {}
+    fn write_text<'b>(&mut self, text: Cow<'b, str>) {
+        escape_html(&mut self.buf, &text, false);
+    }
     fn soft_break(&mut self) {}
     fn hard_break(&mut self) {}
-    fn footnote(&mut self, name: Cow<'a, str>) {}
+    fn footnote<'b>(&mut self, name: Cow<'b, str>) {
+        self.buf.push_str(&name);
+    }
 }
 
 // Error
