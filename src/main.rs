@@ -8,8 +8,7 @@ use pulldown_cmark::{Alignment, Event, Options, Parser, Tag, OPTION_ENABLE_FOOTN
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::error::Error;
-use std::fmt;
-use std::fmt::Write;
+use std::fmt::{self, Write};
 use std::io::{self, Read};
 use termion::color;
 use termion::style;
@@ -40,10 +39,8 @@ fn run() -> Result<(), MarkdownError> {
     let term_size = termion::terminal_size()?;
 
     println!("{:?}", term_size);
-
     let mut ctx = Ctx::new(p, term_size);
     ctx.run();
-
     print!("{}", ctx.buf);
 
     Ok(())
@@ -85,6 +82,7 @@ where
             items: 0,
         }
     }
+
     pub fn run(&mut self) {
         let mut numbers = HashMap::new();
         // process events
@@ -117,18 +115,23 @@ where
         }
         self.buf.push_str(&links);
     }
+
     fn increment(&mut self) {
         self.header_lvl += 1;
     }
+
     fn decrement(&mut self) {
         self.header_lvl -= 1;
     }
+
     fn fresh_line(&mut self) {
         self.buf.push('\n');
     }
+
     fn width(&self) -> usize {
         self.term_size.0 as usize
     }
+
     fn inc_li(&mut self) {
         self.items = self.items + 1;
     }
@@ -292,12 +295,16 @@ where
             Tag::FootnoteDefinition(_) => self.fresh_line(),
         }
     }
+
     fn write_text<'b>(&mut self, text: Cow<'b, str>) {
         self.buf.push_str(&text);
         // escape_html(&mut self.buf, &text, false);
     }
+
     fn soft_break(&mut self) {}
+
     fn hard_break(&mut self) {}
+
     fn footnote<'b>(&mut self, name: Cow<'b, str>) {
         self.buf.push_str(&name);
     }
@@ -317,9 +324,11 @@ fn color_wheel(level: i32, m: i32) -> String {
 fn reset() -> String {
     format!("{}", color::Fg(color::Reset))
 }
+
 fn style_reset() -> String {
     format!("{}", style::Reset)
 }
+
 // Error
 #[derive(Debug)]
 pub(crate) enum MarkdownError {
