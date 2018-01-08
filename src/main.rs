@@ -38,10 +38,14 @@ fn run() -> Result<(), MarkdownError> {
         _ => event,
     });
     let term_size = termion::terminal_size()?;
+
     println!("{:?}", term_size);
+
     let mut ctx = Ctx::new(p, term_size);
     ctx.run();
+
     print!("{}", ctx.buf);
+
     Ok(())
 }
 
@@ -58,6 +62,7 @@ struct Ctx<I> {
     table_state: TableState,
     table_alignments: Vec<Alignment>,
     table_cell_index: usize,
+    footnotes: Vec<String>,
 }
 
 impl<'a, I> Ctx<I>
@@ -73,6 +78,7 @@ where
             term_size,
             table_alignments: Vec::new(),
             table_cell_index: 0,
+            footnotes: Vec::new(),
         }
     }
     pub fn run(&mut self) {
@@ -89,7 +95,6 @@ where
                     self.end_tag(tag);
                 }
                 Event::Text(text) => self.write_text(text),
-                // Event::Html(html) | Event::InlineHtml(html) => write_text(html, tx),
                 Event::SoftBreak => self.soft_break(),
                 Event::HardBreak => self.hard_break(),
                 Event::FootnoteReference(name) => self.footnote(name),
@@ -109,30 +114,26 @@ where
     fn width(&self) -> usize {
         self.term_size.0 as usize
     }
+
     fn start_tag(&mut self, tag: Tag<'a>, numbers: &mut HashMap<Cow<'a, str>, usize>) {
         match tag {
             Tag::Paragraph => {
                 self.fresh_line();
             }
             Tag::Rule => {
+                self.fresh_line();
                 let w = self.width();
                 let r = "-".repeat(w);
                 self.buf.push_str(&r);
             }
             Tag::Header(level) => {
                 self.fresh_line();
-                let steeze = match level {
-                    1 => format!("{}", color::Fg(color::White)),
-                    2 => format!("{}", color::Fg(color::Magenta)),
-                    _ => format!("{}", color::Fg(color::Cyan)),
-                };
-                self.buf.push_str(&steeze);
-                self.buf.push_str("<h");
-                self.buf.push((b'0' + level as u8) as char);
-                self.buf.push('>');
+                let steeze = color_wheel(level, 6);
+                let r = steeze + &"#".repeat(level as usize) + &" ";
+                self.buf.push_str(&r);
             }
             Tag::Table(alignments) => {
-                //self.table_alignments = alignments;
+                self.table_alignments = alignments;
                 self.buf.push_str("<table>");
             }
             Tag::TableHead => {
@@ -140,7 +141,7 @@ where
                 self.buf.push_str("<thead><tr>");
             }
             Tag::TableRow => {
-                //self.table_cell_index = 0;
+                self.table_cell_index = 0;
                 self.buf.push_str("<tr>");
             }
             Tag::TableCell => {
@@ -185,7 +186,7 @@ where
             }
             Tag::Item => {
                 self.fresh_line();
-                self.buf.push_str("<li>");
+                self.buf.push_str("* ");
             }
             Tag::Emphasis => self.buf.push_str("<em>"),
             Tag::Strong => self.buf.push_str("<strong>"),
@@ -226,14 +227,9 @@ where
     }
     fn end_tag(&mut self, tag: Tag<'a>) {
         match tag {
-            Tag::Paragraph => self.buf.push_str("</p>\n"),
+            Tag::Paragraph => self.fresh_line(),
             Tag::Rule => (),
-            Tag::Header(level) => {
-                self.buf.push_str(&format!("{}", color::Fg(color::Reset)));
-                self.buf.push_str("</h");
-                self.buf.push((b'0' + level as u8) as char);
-                self.buf.push_str(">\n");
-            }
+            Tag::Header(_) => self.buf.push_str(&reset()),
             Tag::Table(_) => {
                 self.buf.push_str("</tbody></table>\n");
             }
@@ -254,8 +250,8 @@ where
             Tag::BlockQuote => self.buf.push_str("</blockquote>\n"),
             Tag::CodeBlock(_) => self.buf.push_str("</code></pre>\n"),
             Tag::List(Some(_)) => self.buf.push_str("</ol>\n"),
-            Tag::List(None) => self.buf.push_str("</ul>\n"),
-            Tag::Item => self.buf.push_str("</li>\n"),
+            Tag::List(None) => self.fresh_line(),
+            Tag::Item => self.fresh_line(),
             Tag::Emphasis => self.buf.push_str("</em>"),
             Tag::Strong => self.buf.push_str("</strong>"),
             Tag::Code => self.buf.push_str("</code>"),
@@ -265,7 +261,8 @@ where
         }
     }
     fn write_text<'b>(&mut self, text: Cow<'b, str>) {
-        escape_html(&mut self.buf, &text, false);
+        self.buf.push_str(&text);
+        // escape_html(&mut self.buf, &text, false);
     }
     fn soft_break(&mut self) {}
     fn hard_break(&mut self) {}
@@ -274,6 +271,20 @@ where
     }
 }
 
+fn color_wheel(level: i32, m: i32) -> String {
+    match level % m {
+        1 => format!("{}", color::Fg(color::White)),
+        2 => format!("{}", color::Fg(color::Magenta)),
+        3 => format!("{}", color::Fg(color::Cyan)),
+        4 => format!("{}", color::Fg(color::Red)),
+        5 => format!("{}", color::Fg(color::Green)),
+        _ => format!("{}", color::Fg(color::Blue)),
+    }
+}
+
+fn reset() -> String {
+    format!("{}", color::Fg(color::Reset))
+}
 // Error
 #[derive(Debug)]
 pub(crate) enum MarkdownError {
