@@ -14,6 +14,7 @@ use termion::color;
 use termion::style;
 
 mod escape;
+mod terminal;
 use escape::{escape_href, escape_html};
 
 fn main() {
@@ -38,7 +39,6 @@ fn run() -> Result<(), MarkdownError> {
     });
     let term_size = termion::terminal_size()?;
 
-    println!("{:?}", term_size);
     let mut ctx = Ctx::new(p, term_size);
     ctx.run();
     print!("{}", ctx.buf);
