@@ -30,6 +30,8 @@ pub struct Terminal<'a> {
     links: Vec<(Cow<'a, str>, Cow<'a, str>)>,
     ordered: bool,
     items: usize,
+    reset_color: String,
+    reset_style: String,
 }
 
 impl<'a, I> MDParser<'a, I> for Terminal<'a>
@@ -87,6 +89,8 @@ impl<'a> Terminal<'a> {
             links: Vec::new(),
             ordered: false,
             items: 0,
+            reset_color: format!("{}", color::Fg(color::Reset)),
+            reset_style: format!("{}", style::Reset),
         }
     }
 
@@ -234,7 +238,7 @@ impl<'a> Terminal<'a> {
         match tag {
             Tag::Paragraph => fresh_line(buf),
             Tag::Rule => (),
-            Tag::Header(_) => buf.push_str(&reset()),
+            Tag::Header(_) => buf.push_str(&self.reset_color),
             Tag::Table(_) => {
                 buf.push_str("</tbody></table>\n");
             }
@@ -257,11 +261,11 @@ impl<'a> Terminal<'a> {
             Tag::List(Some(_)) => fresh_line(buf), // ol
             Tag::List(None) => fresh_line(buf),
             Tag::Item => (),
-            Tag::Emphasis => buf.push_str(&style_reset()),
-            Tag::Strong => buf.push_str(&style_reset()),
+            Tag::Emphasis => buf.push_str(&self.reset_style),
+            Tag::Strong => buf.push_str(&self.reset_style),
             Tag::Code => buf.push_str("</code>"),
             Tag::Link(_, _) => {
-                buf.push_str(&style_reset());
+                buf.push_str(&self.reset_style);
                 let num = self.links.len().to_string();
                 let l = String::from("[") + &num + "]";
                 buf.push_str(&l);
@@ -290,12 +294,4 @@ fn color_wheel(level: i32, m: i32) -> String {
         5 => format!("{}", color::Fg(color::Green)),
         _ => format!("{}", color::Fg(color::Blue)),
     }
-}
-
-fn reset() -> String {
-    format!("{}", color::Fg(color::Reset))
-}
-
-fn style_reset() -> String {
-    format!("{}", style::Reset)
 }
