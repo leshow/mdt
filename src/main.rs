@@ -62,7 +62,7 @@ struct Ctx<'a, I> {
     table_state: TableState,
     table_alignments: Vec<Alignment>,
     table_cell_index: usize,
-    links: Vec<(Cow<'a, str>, Cow<'a, str>)>,
+    pub links: Vec<(Cow<'a, str>, Cow<'a, str>)>,
 }
 
 impl<'a, I> Ctx<'a, I>
@@ -101,13 +101,14 @@ where
                 _ => panic!("html and inline html converted to text, this is unreachable"),
             }
         }
+        // println!("{:?}", self.links.len());
         // let mut links = String::new();
         // while let Some(&(ref dest, ref title)) = self.links.iter().next() {
         // why doesn't for &(ref dest, ref title) in self.links {} work?
-        //     if !title.is_empty() {
-        //         links.push_str(&format!("\n{}: {}", title, dest));
-        //     }
-        //     links.push_str(&format!("\n{}", dest));
+        // if !title.is_empty() {
+        //     links.push_str(&format!("\n{}: {}", title, dest));
+        // }
+        // links.push_str(&format!("\n{}", dest));
         // }
         // self.buf.push_str(&links);
     }
