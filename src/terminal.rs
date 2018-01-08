@@ -1,17 +1,14 @@
-use {color_wheel, reset, style_reset};
 use MarkdownError::*;
 use escape::{escape_href, escape_html};
-use pulldown_cmark::{Alignment, Event, Options, Parser, Tag, OPTION_ENABLE_FOOTNOTES,
-                     OPTION_ENABLE_TABLES};
+use pulldown_cmark::{Alignment, Event, Tag};
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::error::Error;
 use std::fmt::{self, Write};
 use std::io::{self, Read};
 use termion::color;
 use termion::style;
 
-trait MDParser<'a, I>
+pub trait MDParser<'a, I>
 where
     I: Iterator<Item = Event<'a>>,
 {
@@ -24,7 +21,7 @@ enum TableState {
     Body,
 }
 
-struct Terminal<'a> {
+pub struct Terminal<'a> {
     header_lvl: i32,
     term_size: (u16, u16),
     table_state: TableState,
@@ -44,21 +41,24 @@ where
         let mut buf = String::new();
         let mut numbers = HashMap::new();
 
-        for event in iter {
-            match event {
-                Event::Start(tag) => {
-                    self.increment();
-                    self.start_tag(tag, &mut buf, &mut numbers);
+        {
+            let mbuf = &mut buf;
+            for event in iter {
+                match event {
+                    Event::Start(tag) => {
+                        self.increment();
+                        self.start_tag(tag, mbuf, &mut numbers);
+                    }
+                    Event::End(tag) => {
+                        self.decrement();
+                        self.end_tag(tag, mbuf);
+                    }
+                    Event::Text(text) => write_buf(mbuf, text),
+                    Event::SoftBreak => self.soft_break(),
+                    Event::HardBreak => self.hard_break(),
+                    Event::FootnoteReference(name) => write_buf(mbuf, name),
+                    _ => panic!("html and inline html converted to text, this is unreachable"),
                 }
-                Event::End(tag) => {
-                    self.decrement();
-                    self.end_tag(tag, &mut buf);
-                }
-                Event::Text(text) => self.write_text(text),
-                Event::SoftBreak => self.soft_break(),
-                Event::HardBreak => self.hard_break(),
-                Event::FootnoteReference(name) => self.footnote(name),
-                _ => panic!("html and inline html converted to text, this is unreachable"),
             }
         }
         // write links as footnotes
@@ -105,7 +105,7 @@ impl<'a> Terminal<'a> {
     fn inc_li(&mut self) {
         self.items = self.items + 1;
     }
-    pub fn start_tag(
+    fn start_tag(
         &mut self,
         tag: Tag<'a>,
         buf: &mut String,
@@ -229,13 +229,72 @@ impl<'a> Terminal<'a> {
             }
         }
     }
-    pub fn end_tag(&mut self, tag: Tag<'a>, buf: &mut String) {}
-    pub fn write_text(&mut self, text: Cow<'a, str>) {}
-    pub fn soft_break(&mut self) {}
-    pub fn hard_break(&mut self) {}
-    pub fn footnote(&mut self, name: Cow<'a, str>) {}
+    fn end_tag(&mut self, tag: Tag<'a>, buf: &mut String) {
+        match tag {
+            Tag::Paragraph => fresh_line(buf),
+            Tag::Rule => (),
+            Tag::Header(_) => buf.push_str(&reset()),
+            Tag::Table(_) => {
+                buf.push_str("</tbody></table>\n");
+            }
+            Tag::TableHead => {
+                buf.push_str("</tr></thead><tbody>\n");
+                self.table_state = TableState::Body;
+            }
+            Tag::TableRow => {
+                buf.push_str("</tr>\n");
+            }
+            Tag::TableCell => {
+                match self.table_state {
+                    TableState::Head => buf.push_str("</th>"),
+                    TableState::Body => buf.push_str("</td>"),
+                }
+                self.table_cell_index += 1;
+            }
+            Tag::BlockQuote => buf.push_str("</blockquote>\n"),
+            Tag::CodeBlock(_) => buf.push_str("</code></pre>\n"),
+            Tag::List(Some(_)) => buf.push_str("</ol>\n"),
+            Tag::List(None) => fresh_line(buf),
+            Tag::Item => fresh_line(buf),
+            Tag::Emphasis => buf.push_str(&style_reset()),
+            Tag::Strong => buf.push_str(&style_reset()),
+            Tag::Code => buf.push_str("</code>"),
+            Tag::Link(_, _) => {
+                buf.push_str(&style_reset());
+                let num = self.links.len().to_string();
+                let l = String::from("[") + &num + "]";
+                buf.push_str(&l);
+            }
+            Tag::Image(_, _) => (), // shouldn't happen, handled in start
+            Tag::FootnoteDefinition(_) => fresh_line(buf),
+        }
+    }
+    fn soft_break(&mut self) {}
+    fn hard_break(&mut self) {}
+}
+
+fn write_buf<'a>(buf: &mut String, text: Cow<'a, str>) {
+    buf.push_str(&text);
 }
 
 fn fresh_line(buf: &mut String) {
     buf.push('\n');
+}
+fn color_wheel(level: i32, m: i32) -> String {
+    match level % m {
+        1 => format!("{}", color::Fg(color::White)),
+        2 => format!("{}", color::Fg(color::Magenta)),
+        3 => format!("{}", color::Fg(color::Cyan)),
+        4 => format!("{}", color::Fg(color::Red)),
+        5 => format!("{}", color::Fg(color::Green)),
+        _ => format!("{}", color::Fg(color::Blue)),
+    }
+}
+
+fn reset() -> String {
+    format!("{}", color::Fg(color::Reset))
+}
+
+fn style_reset() -> String {
+    format!("{}", style::Reset)
 }
