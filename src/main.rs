@@ -63,6 +63,8 @@ struct Ctx<'a, I> {
     table_alignments: Vec<Alignment>,
     table_cell_index: usize,
     links: Vec<(Cow<'a, str>, Cow<'a, str>)>,
+    ordered: bool,
+    items: usize,
 }
 
 impl<'a, I> Ctx<'a, I>
@@ -79,6 +81,8 @@ where
             table_alignments: Vec::new(),
             table_cell_index: 0,
             links: Vec::new(),
+            ordered: false,
+            items: 0,
         }
     }
     pub fn run(&mut self) {
@@ -125,6 +129,9 @@ where
     fn width(&self) -> usize {
         self.term_size.0 as usize
     }
+    fn inc_li(&mut self) {
+        self.items = self.items + 1;
+    }
 
     fn start_tag(&mut self, tag: Tag<'a>, numbers: &mut HashMap<Cow<'a, str>, usize>) {
         match tag {
@@ -170,7 +177,7 @@ where
             }
             Tag::BlockQuote => {
                 self.fresh_line();
-                self.buf.push_str("<blockquote>\n");
+                self.buf.push_str("<blockquote>");
             }
             Tag::CodeBlock(info) => {
                 self.fresh_line();
@@ -185,22 +192,34 @@ where
             }
             Tag::List(Some(1)) => {
                 self.fresh_line();
-                self.buf.push_str("<ol>\n");
+                self.ordered = true;
+                self.items = 0;
+                // self.buf.push_str("<ol>\n");
             }
             Tag::List(Some(start)) => {
                 self.fresh_line();
-                let _ = write!(self.buf, "<ol start=\"{}\">\n", start);
+                self.ordered = true;
+                self.items = start;
+                // write!(self.buf, "<ol start=\"{}\">\n", start);
             }
             Tag::List(None) => {
                 self.fresh_line();
-                self.buf.push_str("<ul>\n");
+                self.ordered = false;
+                // self.buf.push_str("<ul>\n");
             }
             Tag::Item => {
                 self.fresh_line();
-                self.buf.push_str("* ");
+                if self.ordered {
+                    self.inc_li();
+                    self.buf.push_str(&(self.items.to_string() + " "));
+                } else {
+                    self.buf.push_str("* ");
+                }
             }
-            Tag::Emphasis => self.buf.push_str("<em>"),
-            Tag::Strong => self.buf.push_str("<strong>"),
+            Tag::Emphasis => {
+                self.buf.push_str(&format!("{}", style::Italic));
+            }
+            Tag::Strong => self.buf.push_str(&format!("{}", style::Bold)),
             Tag::Code => self.buf.push_str("<code>"),
             Tag::Link(dest, title) => {
                 self.buf.push_str(&format!("{}", style::Underline));
@@ -220,14 +239,16 @@ where
             Tag::FootnoteDefinition(name) => {
                 self.fresh_line();
                 let len = numbers.len() + 1;
-                self.buf
-                    .push_str("<div class=\"footnote-definition\" id=\"");
-                escape_html(&mut self.buf, &*name, false);
-                self.buf
-                    .push_str("\"><sup class=\"footnote-definition-label\">");
+                //
+                // self.buf
+                //     .push_str("<div class=\"footnote-definition\" id=\"");
+                // escape_html(&mut self.buf, &*name, false);
+                // self.buf
+                //     .push_str("\"><sup class=\"footnote-definition-label\">");
                 let number = numbers.entry(name).or_insert(len);
-                self.buf.push_str(&*format!("{}", number));
-                self.buf.push_str("</sup>");
+                // self.buf.push_str(&*format!("{}", number));
+                self.buf.push_str(&format!("[^{}] ", number.to_string()));
+                //self.buf.push_str("</sup>");
             }
         }
     }
@@ -258,17 +279,17 @@ where
             Tag::List(Some(_)) => self.buf.push_str("</ol>\n"),
             Tag::List(None) => self.fresh_line(),
             Tag::Item => self.fresh_line(),
-            Tag::Emphasis => self.buf.push_str("</em>"),
-            Tag::Strong => self.buf.push_str("</strong>"),
+            Tag::Emphasis => self.buf.push_str(&style_reset()),
+            Tag::Strong => self.buf.push_str(&style_reset()),
             Tag::Code => self.buf.push_str("</code>"),
             Tag::Link(_, _) => {
-                self.buf.push_str(&format!("{}", style::Reset));
+                self.buf.push_str(&style_reset());
                 let num = self.links.len().to_string();
                 let l = String::from("[") + &num + "]";
                 self.buf.push_str(&l);
             }
             Tag::Image(_, _) => (), // shouldn't happen, handled in start
-            Tag::FootnoteDefinition(_) => self.buf.push_str("</div>\n"),
+            Tag::FootnoteDefinition(_) => self.fresh_line(),
         }
     }
     fn write_text<'b>(&mut self, text: Cow<'b, str>) {
@@ -295,6 +316,9 @@ fn color_wheel(level: i32, m: i32) -> String {
 
 fn reset() -> String {
     format!("{}", color::Fg(color::Reset))
+}
+fn style_reset() -> String {
+    format!("{}", style::Reset)
 }
 // Error
 #[derive(Debug)]
