@@ -54,7 +54,7 @@ enum TableState {
     Body,
 }
 
-struct Ctx<I> {
+struct Ctx<'a, I> {
     iter: I,
     header_lvl: i32,
     term_size: (u16, u16),
@@ -62,14 +62,14 @@ struct Ctx<I> {
     table_state: TableState,
     table_alignments: Vec<Alignment>,
     table_cell_index: usize,
-    footnotes: Vec<String>,
+    links: Vec<(Cow<'a, str>, Cow<'a, str>)>,
 }
 
-impl<'a, I> Ctx<I>
+impl<'a, I> Ctx<'a, I>
 where
     I: Iterator<Item = Event<'a>>,
 {
-    pub fn new(iter: I, term_size: (u16, u16)) -> Ctx<I> {
+    pub fn new(iter: I, term_size: (u16, u16)) -> Ctx<'a, I> {
         Ctx {
             iter,
             buf: String::new(),
@@ -78,7 +78,7 @@ where
             term_size,
             table_alignments: Vec::new(),
             table_cell_index: 0,
-            footnotes: Vec::new(),
+            links: Vec::new(),
         }
     }
     pub fn run(&mut self) {
@@ -101,6 +101,15 @@ where
                 _ => panic!("html and inline html converted to text, this is unreachable"),
             }
         }
+        // let mut links = String::new();
+        // while let Some(&(ref dest, ref title)) = self.links.iter().next() {
+        // why doesn't for &(ref dest, ref title) in self.links {} work?
+        //     if !title.is_empty() {
+        //         links.push_str(&format!("\n{}: {}", title, dest));
+        //     }
+        //     links.push_str(&format!("\n{}", dest));
+        // }
+        // self.buf.push_str(&links);
     }
     fn increment(&mut self) {
         self.header_lvl += 1;
@@ -129,7 +138,7 @@ where
             Tag::Header(level) => {
                 self.fresh_line();
                 let steeze = color_wheel(level, 6);
-                let r = steeze + &"#".repeat(level as usize) + &" ";
+                let r = steeze + &"#".repeat(level as usize) + " ";
                 self.buf.push_str(&r);
             }
             Tag::Table(alignments) => {
@@ -192,13 +201,8 @@ where
             Tag::Strong => self.buf.push_str("<strong>"),
             Tag::Code => self.buf.push_str("<code>"),
             Tag::Link(dest, title) => {
-                self.buf.push_str("<a href=\"");
-                escape_href(&mut self.buf, &dest);
-                if !title.is_empty() {
-                    self.buf.push_str("\" title=\"");
-                    escape_html(&mut self.buf, &title, false);
-                }
-                self.buf.push_str("\">");
+                self.buf.push_str(&format!("{}", style::Underline));
+                self.links.push((dest, title));
             }
             Tag::Image(dest, title) => {
                 self.buf.push_str("<img src=\"");
@@ -255,7 +259,12 @@ where
             Tag::Emphasis => self.buf.push_str("</em>"),
             Tag::Strong => self.buf.push_str("</strong>"),
             Tag::Code => self.buf.push_str("</code>"),
-            Tag::Link(_, _) => self.buf.push_str("</a>"),
+            Tag::Link(_, _) => {
+                self.buf.push_str(&format!("{}", style::Reset));
+                let num = self.links.len().to_string();
+                let l = String::from("[") + &num + "]";
+                self.buf.push_str(&l);
+            }
             Tag::Image(_, _) => (), // shouldn't happen, handled in start
             Tag::FootnoteDefinition(_) => self.buf.push_str("</div>\n"),
         }
