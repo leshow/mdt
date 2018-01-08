@@ -2,7 +2,7 @@
 
 ---
 
-_mdt_ is a markdown previewer for the **terminal**. It takes markdown as input from `stdin` and prints it out formatted for easy reading.
+_mdt_ is a markdown previewer for the **terminal**. It takes markdown as input from `stdin` and prints it out formatted for easy reading. It should support all CommonMark docs (but won't attempt inner html). Work in progress, it mostly still prints html instead of terminal characters.
 
 It uses [pulldown_cmark](http://www.github.com/google/pulldown-cmark) for parsing markdown.
 

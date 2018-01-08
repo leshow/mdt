@@ -171,24 +171,24 @@ impl<'a> Terminal<'a> {
                 fresh_line(buf);
                 self.ordered = true;
                 self.items = 0;
-                // buf.push_str("<ol>\n");
+                buf.push_str("<ol>\n");
             }
             Tag::List(Some(start)) => {
                 fresh_line(buf);
                 self.ordered = true;
                 self.items = start;
-                // write!(buf, "<ol start=\"{}\">\n", start);
+                write!(buf, "<ol start=\"{}\">\n", start);
             }
             Tag::List(None) => {
                 fresh_line(buf);
                 self.ordered = false;
-                // buf.push_str("<ul>\n");
+                buf.push_str("<ul>\n");
             }
             Tag::Item => {
                 fresh_line(buf);
                 if self.ordered {
                     self.inc_li();
-                    buf.push_str(&(self.items.to_string() + " "));
+                    buf.push_str(&(self.items.to_string() + ". "));
                 } else {
                     buf.push_str("* ");
                 }
