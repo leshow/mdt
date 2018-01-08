@@ -169,20 +169,21 @@ impl<'a> Terminal<'a> {
             }
             Tag::List(Some(1)) => {
                 fresh_line(buf);
+                // <ol>
                 self.ordered = true;
                 self.items = 0;
-                buf.push_str("<ol>\n");
             }
             Tag::List(Some(start)) => {
                 fresh_line(buf);
+                // <ol start=start>
                 self.ordered = true;
                 self.items = start;
-                write!(buf, "<ol start=\"{}\">\n", start);
+                // write!(buf, "<ol start=\"{}\">\n", start);
             }
             Tag::List(None) => {
+                // UL
                 fresh_line(buf);
                 self.ordered = false;
-                buf.push_str("<ul>\n");
             }
             Tag::Item => {
                 fresh_line(buf);
@@ -253,9 +254,9 @@ impl<'a> Terminal<'a> {
             }
             Tag::BlockQuote => buf.push_str("</blockquote>\n"),
             Tag::CodeBlock(_) => buf.push_str("</code></pre>\n"),
-            Tag::List(Some(_)) => buf.push_str("</ol>\n"),
+            Tag::List(Some(_)) => fresh_line(buf), // ol
             Tag::List(None) => fresh_line(buf),
-            Tag::Item => fresh_line(buf),
+            Tag::Item => (),
             Tag::Emphasis => buf.push_str(&style_reset()),
             Tag::Strong => buf.push_str(&style_reset()),
             Tag::Code => buf.push_str("</code>"),
