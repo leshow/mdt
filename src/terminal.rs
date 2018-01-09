@@ -6,8 +6,9 @@ use std::collections::HashMap;
 use std::fmt::{self, Write};
 use std::io::{self, Read};
 use syntect::easy::HighlightLines;
-use syntect::highlighting::{Theme, ThemeSet};
+use syntect::highlighting::{Style, Theme, ThemeSet};
 use syntect::parsing::{ScopeStack, SyntaxDefinition, SyntaxSet};
+use syntect::util::as_24_bit_terminal_escaped;
 use termion::color;
 use termion::style;
 
@@ -291,17 +292,21 @@ impl<'a> Terminal<'a> {
         if let Some(ref lang) = self.lang {
             let ts = ThemeSet::load_defaults();
             let ps = SyntaxSet::load_defaults_nonewlines();
-            let syntax = ps.find_syntax_by_name(lang).unwrap();
+            let syntax = ps.find_syntax_by_extension(lang).unwrap();
             let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
-            for line in s.lines() {}
+            for line in s.lines() {
+                let ranges: Vec<(Style, &str)> = h.highlight(line);
+                let escaped = as_24_bit_terminal_escaped(&ranges[..], true);
+                buf.push_str(&escaped);
+            }
         }
     }
     fn write_buf(&self, buf: &mut String, text: Cow<'a, str>) {
-        if self.in_code {
-            self.highlight_lines(&text, buf);
-        } else {
-            buf.push_str(&text);
-        }
+        // if self.in_code {
+        //     self.highlight_lines(&text, buf);
+        // } else {
+        buf.push_str(&text);
+        // }
     }
 }
 
