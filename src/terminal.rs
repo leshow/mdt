@@ -22,7 +22,7 @@ enum TableState {
 }
 
 pub struct Terminal<'a> {
-    header_lvl: i32,
+    indent_lvl: usize,
     term_size: (u16, u16),
     table_state: TableState,
     table_alignments: Vec<Alignment>,
@@ -63,6 +63,7 @@ where
                 }
             }
         }
+
         // write links as footnotes
         let mut links = String::new();
         for (i, &(ref dest, ref title)) in self.links.iter().enumerate() {
@@ -82,7 +83,7 @@ impl<'a> Terminal<'a> {
     pub fn new(term_size: (u16, u16)) -> Terminal<'a> {
         Terminal {
             table_state: TableState::Head,
-            header_lvl: 0,
+            indent_lvl: 0,
             term_size,
             table_alignments: Vec::new(),
             table_cell_index: 0,
@@ -95,11 +96,11 @@ impl<'a> Terminal<'a> {
     }
 
     fn increment(&mut self) {
-        self.header_lvl += 1;
+        self.indent_lvl += 1;
     }
 
     fn decrement(&mut self) {
-        self.header_lvl -= 1;
+        self.indent_lvl -= 1;
     }
 
     fn width(&self) -> usize {
@@ -109,6 +110,7 @@ impl<'a> Terminal<'a> {
     fn inc_li(&mut self) {
         self.items = self.items + 1;
     }
+
     fn start_tag(
         &mut self,
         tag: Tag<'a>,
@@ -116,9 +118,7 @@ impl<'a> Terminal<'a> {
         numbers: &mut HashMap<Cow<'a, str>, usize>,
     ) {
         match tag {
-            Tag::Paragraph => {
-                fresh_line(buf);
-            }
+            Tag::Paragraph => {}
             Tag::Rule => {
                 fresh_line(buf);
                 let w = self.width();
@@ -127,7 +127,7 @@ impl<'a> Terminal<'a> {
             }
             Tag::Header(level) => {
                 fresh_line(buf);
-                let steeze = color_wheel(level, 6);
+                let steeze = format!("{}", color::Fg(color::Magenta));
                 let r = steeze + &"#".repeat(level as usize) + " ";
                 buf.push_str(&r);
             }
@@ -158,7 +158,11 @@ impl<'a> Terminal<'a> {
             }
             Tag::BlockQuote => {
                 fresh_line(buf);
-                buf.push_str("<blockquote>");
+                buf.push_str(&format!(
+                    "{}{}",
+                    color::Fg(color::Green),
+                    "   ".repeat(self.indent_lvl) + "> "
+                ));
             }
             Tag::CodeBlock(info) => {
                 fresh_line(buf);
@@ -221,12 +225,9 @@ impl<'a> Terminal<'a> {
             Tag::FootnoteDefinition(name) => {
                 fresh_line(buf);
                 let len = numbers.len() + 1;
-                //
-                // buf
-                //     .push_str("<div class=\"footnote-definition\" id=\"");
+                // buf.push_str("<div class=\"footnote-definition\" id=\"");
                 // escape_html(&mut buf, &*name, false);
-                // buf
-                //     .push_str("\"><sup class=\"footnote-definition-label\">");
+                // buf.push_str("\"><sup class=\"footnote-definition-label\">");
                 let number = numbers.entry(name).or_insert(len);
                 // buf.push_str(&*format!("{}", number));
                 buf.push_str(&format!("[^{}] ", number.to_string()));
@@ -256,7 +257,7 @@ impl<'a> Terminal<'a> {
                 }
                 self.table_cell_index += 1;
             }
-            Tag::BlockQuote => buf.push_str("</blockquote>\n"),
+            Tag::BlockQuote => buf.push_str(&self.reset_color),
             Tag::CodeBlock(_) => buf.push_str("</code></pre>\n"),
             Tag::List(Some(_)) => fresh_line(buf), // ol
             Tag::List(None) => fresh_line(buf),
@@ -285,6 +286,7 @@ fn write_buf<'a>(buf: &mut String, text: Cow<'a, str>) {
 fn fresh_line(buf: &mut String) {
     buf.push('\n');
 }
+
 fn color_wheel(level: i32, m: i32) -> String {
     match level % m {
         1 => format!("{}", color::Fg(color::White)),

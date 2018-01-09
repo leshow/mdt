@@ -19,6 +19,7 @@ or, more tersely,
 $ mdt < README.md
 [...]
 ```
+
 ### Features (currently)
 
 1. paragraph
