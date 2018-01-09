@@ -20,6 +20,32 @@ $ mdt < README.md
 [...]
 ```
 
+```js
+function foo(x) {
+  return x * x;
+}
+```
+
+```rust
+    fn highlight_lines(&self, s: &str, buf: &mut String) {
+        let ts = ThemeSet::load_defaults();
+        let ps = SyntaxSet::load_defaults_nonewlines();
+
+        let syntax = if let Some(ref lang) = self.lang {
+            ps.find_syntax_by_name(lang)
+        } else {
+            ps.find_syntax_by_first_line(s)
+        }.unwrap_or_else(|| ps.find_syntax_plain_text());
+
+        let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+        for line in s.lines() {
+            let ranges: Vec<(Style, &str)> = h.highlight(line);
+            let escaped = as_24_bit_terminal_escaped(&ranges[..], false);
+            buf.push_str(&escaped);
+        }
+    }
+```
+
 ### Features (currently)
 
 1. paragraph

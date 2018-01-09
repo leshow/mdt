@@ -126,7 +126,7 @@ impl<'a> Terminal<'a> {
         numbers: &mut HashMap<Cow<'a, str>, usize>,
     ) {
         match tag {
-            Tag::Paragraph => {}
+            Tag::Paragraph => fresh_line(buf),
             Tag::Rule => {
                 fresh_line(buf);
                 let w = self.width();
@@ -269,7 +269,10 @@ impl<'a> Terminal<'a> {
                 self.table_cell_index += 1;
             }
             Tag::BlockQuote => buf.push_str(&self.reset_color),
-            Tag::CodeBlock(_) => buf.push_str("</code></pre>\n"),
+            Tag::CodeBlock(_) => {
+                self.in_code = false;
+                buf.push_str(&format!("{}\n", self.reset_color));
+            }
             Tag::List(Some(_)) => fresh_line(buf), // ol
             Tag::List(None) => fresh_line(buf),
             Tag::Item => (),
@@ -289,24 +292,28 @@ impl<'a> Terminal<'a> {
     fn soft_break(&mut self) {}
     fn hard_break(&mut self) {}
     fn highlight_lines(&self, s: &str, buf: &mut String) {
-        if let Some(ref lang) = self.lang {
-            let ts = ThemeSet::load_defaults();
-            let ps = SyntaxSet::load_defaults_nonewlines();
-            let syntax = ps.find_syntax_by_extension(lang).unwrap();
-            let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
-            for line in s.lines() {
-                let ranges: Vec<(Style, &str)> = h.highlight(line);
-                let escaped = as_24_bit_terminal_escaped(&ranges[..], true);
-                buf.push_str(&escaped);
-            }
+        let ts = ThemeSet::load_defaults();
+        let ps = SyntaxSet::load_defaults_newlines();
+
+        let syntax = if let Some(ref lang) = self.lang {
+            ps.find_syntax_by_extension(lang)
+        } else {
+            ps.find_syntax_by_first_line(s)
+        }.unwrap_or_else(|| ps.find_syntax_plain_text());
+        let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+        for line in s.lines() {
+            let regions: Vec<(Style, &str)> = h.highlight(&line);
+            buf.push_str(&as_24_bit_terminal_escaped(&regions[..], true));
         }
+        // Clear the formatting
+        buf.push_str("\x1b[0m");
     }
     fn write_buf(&self, buf: &mut String, text: Cow<'a, str>) {
-        // if self.in_code {
-        //     self.highlight_lines(&text, buf);
-        // } else {
-        buf.push_str(&text);
-        // }
+        if self.in_code {
+            self.highlight_lines(&text, buf);
+        } else {
+            buf.push_str(&text);
+        }
     }
 }
 
