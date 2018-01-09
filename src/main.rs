@@ -1,4 +1,5 @@
 extern crate pulldown_cmark;
+extern crate syntect;
 extern crate termion;
 
 // Any type that derives Fail can be cast into Error

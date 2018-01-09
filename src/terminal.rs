@@ -5,6 +5,9 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::{self, Write};
 use std::io::{self, Read};
+use syntect::easy::HighlightLines;
+use syntect::highlighting::{Theme, ThemeSet};
+use syntect::parsing::{ScopeStack, SyntaxDefinition, SyntaxSet};
 use termion::color;
 use termion::style;
 
@@ -32,6 +35,8 @@ pub struct Terminal<'a> {
     items: usize,
     reset_color: String,
     reset_style: String,
+    in_code: bool,
+    lang: Option<String>,
 }
 
 impl<'a, I> MDParser<'a, I> for Terminal<'a>
@@ -55,10 +60,10 @@ where
                         self.decrement();
                         self.end_tag(tag, mbuf);
                     }
-                    Event::Text(text) => write_buf(mbuf, text),
+                    Event::Text(text) => self.write_buf(mbuf, text),
                     Event::SoftBreak => self.soft_break(),
                     Event::HardBreak => self.hard_break(),
-                    Event::FootnoteReference(name) => write_buf(mbuf, name),
+                    Event::FootnoteReference(name) => self.write_buf(mbuf, name),
                     _ => panic!("html and inline html converted to text, this is unreachable"),
                 }
             }
@@ -92,6 +97,8 @@ impl<'a> Terminal<'a> {
             items: 0,
             reset_color: format!("{}", color::Fg(color::Reset)),
             reset_style: format!("{}", style::Reset),
+            in_code: false,
+            lang: None,
         }
     }
 
@@ -127,7 +134,7 @@ impl<'a> Terminal<'a> {
             }
             Tag::Header(level) => {
                 fresh_line(buf);
-                let steeze = format!("{}", color::Fg(color::Magenta));
+                let steeze = format!("{}", color::Fg(color::Red));
                 let r = steeze + &"#".repeat(level as usize) + " ";
                 buf.push_str(&r);
             }
@@ -166,14 +173,18 @@ impl<'a> Terminal<'a> {
             }
             Tag::CodeBlock(info) => {
                 fresh_line(buf);
-                let lang = info.split(' ').next().unwrap();
-                if lang.is_empty() {
-                    buf.push_str("<pre><code>");
-                } else {
-                    buf.push_str("<pre><code class=\"language-");
-                    escape_html(buf, lang, false);
-                    buf.push_str("\">");
-                }
+                // let lang = info.split(' ').next().unwrap();
+                self.lang = info.split(' ').next().map(String::from);
+                self.in_code = true;
+                // if lang.is_empty() {
+                //     // buf.push_str("<pre><code>");
+
+                // } else {
+                //     // buf.push_str("<pre><code class=\"language-");
+                //     // escape_html(buf, lang, false);
+                //     // buf.push_str("\">");
+
+                // }
             }
             Tag::List(Some(1)) => {
                 fresh_line(buf);
@@ -231,7 +242,6 @@ impl<'a> Terminal<'a> {
                 let number = numbers.entry(name).or_insert(len);
                 // buf.push_str(&*format!("{}", number));
                 buf.push_str(&format!("[^{}] ", number.to_string()));
-                //buf.push_str("</sup>");
             }
         }
     }
@@ -277,10 +287,22 @@ impl<'a> Terminal<'a> {
     }
     fn soft_break(&mut self) {}
     fn hard_break(&mut self) {}
-}
-
-fn write_buf<'a>(buf: &mut String, text: Cow<'a, str>) {
-    buf.push_str(&text);
+    fn highlight_lines(&self, s: &str, buf: &mut String) {
+        if let Some(ref lang) = self.lang {
+            let ts = ThemeSet::load_defaults();
+            let ps = SyntaxSet::load_defaults_nonewlines();
+            let syntax = ps.find_syntax_by_name(lang).unwrap();
+            let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+            for line in s.lines() {}
+        }
+    }
+    fn write_buf(&self, buf: &mut String, text: Cow<'a, str>) {
+        if self.in_code {
+            self.highlight_lines(&text, buf);
+        } else {
+            buf.push_str(&text);
+        }
+    }
 }
 
 fn fresh_line(buf: &mut String) {
