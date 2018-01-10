@@ -65,7 +65,8 @@ function foo(x) {
 
 This is a new paragraph.[^1] And I'm going to reference [a link][1]. Let's do some other stuff:
 
-> quote me plz senpai
+> quote me plz senpai. This line is part
+> of the same quote.
 
 Oh hai!
 

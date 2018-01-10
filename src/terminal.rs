@@ -245,11 +245,14 @@ impl<'a> Terminal<'a> {
             Tag::FootnoteDefinition(name) => {
                 fresh_line(buf);
                 let len = numbers.len() + 1;
+
                 // buf.push_str("<div class=\"footnote-definition\" id=\"");
-                // escape_html(&mut buf, &*name, false);
+                // escape_html(buf, &*name, false);
                 // buf.push_str("\"><sup class=\"footnote-definition-label\">");
+
                 let number = numbers.entry(name).or_insert(len);
                 // buf.push_str(&*format!("{}", number));
+
                 buf.push_str(&format!("[^{}] ", number.to_string()));
                 self.dontskip = true;
             }
