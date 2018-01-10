@@ -38,6 +38,7 @@ pub struct Terminal<'a> {
     reset_style: String,
     in_code: bool,
     lang: Option<String>,
+    dontskip: bool,
 }
 
 impl<'a, I> MDParser<'a, I> for Terminal<'a>
@@ -100,6 +101,7 @@ impl<'a> Terminal<'a> {
             reset_style: format!("{}", style::Reset),
             in_code: false,
             lang: None,
+            dontskip: false,
         }
     }
 
@@ -126,7 +128,12 @@ impl<'a> Terminal<'a> {
         numbers: &mut HashMap<Cow<'a, str>, usize>,
     ) {
         match tag {
-            Tag::Paragraph => fresh_line(buf),
+            Tag::Paragraph => {
+                if !self.dontskip {
+                    fresh_line(buf);
+                }
+                self.dontskip = false;
+            }
             Tag::Rule => {
                 fresh_line(buf);
                 let w = self.width();
@@ -171,6 +178,7 @@ impl<'a> Terminal<'a> {
                     color::Fg(color::Green),
                     "   ".repeat(self.indent_lvl) + "> "
                 ));
+                self.dontskip = true;
             }
             Tag::CodeBlock(info) => {
                 fresh_line(buf);
@@ -243,6 +251,7 @@ impl<'a> Terminal<'a> {
                 let number = numbers.entry(name).or_insert(len);
                 // buf.push_str(&*format!("{}", number));
                 buf.push_str(&format!("[^{}] ", number.to_string()));
+                self.dontskip = true;
             }
         }
     }
@@ -310,7 +319,8 @@ impl<'a> Terminal<'a> {
     }
     fn write_buf(&self, buf: &mut String, text: Cow<'a, str>) {
         if self.in_code {
-            self.highlight_lines(&text, buf);
+            // self.highlight_lines(&text, buf);
+            buf.push_str(&text);
         } else {
             buf.push_str(&text);
         }
