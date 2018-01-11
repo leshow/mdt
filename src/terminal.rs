@@ -37,6 +37,7 @@ pub struct Terminal<'a> {
     reset_color: String,
     reset_style: String,
     in_code: bool,
+    code: String,
     lang: Option<String>,
     dontskip: bool,
 }
@@ -100,6 +101,7 @@ impl<'a> Terminal<'a> {
             reset_color: format!("{}", color::Fg(color::Reset)),
             reset_style: format!("{}", style::Reset),
             in_code: false,
+            code: String::new(),
             lang: None,
             dontskip: false,
         }
@@ -258,6 +260,7 @@ impl<'a> Terminal<'a> {
             }
         }
     }
+
     fn end_tag(&mut self, tag: Tag<'a>, buf: &mut String) {
         match tag {
             Tag::Paragraph => fresh_line(buf),
@@ -283,6 +286,7 @@ impl<'a> Terminal<'a> {
             Tag::BlockQuote => buf.push_str(&self.reset_color),
             Tag::CodeBlock(_) => {
                 self.in_code = false;
+                self.write_code(buf);
                 buf.push_str(&format!("{}\n", self.reset_color));
             }
             Tag::List(Some(_)) => fresh_line(buf), // ol
@@ -301,29 +305,32 @@ impl<'a> Terminal<'a> {
             Tag::FootnoteDefinition(_) => fresh_line(buf),
         }
     }
+
     fn soft_break(&mut self) {}
+
     fn hard_break(&mut self) {}
-    fn highlight_lines(&self, s: &str, buf: &mut String) {
+
+    fn write_code(&self, buf: &mut String) {
         let ts = ThemeSet::load_defaults();
         let ps = SyntaxSet::load_defaults_newlines();
 
         let syntax = if let Some(ref lang) = self.lang {
             ps.find_syntax_by_extension(lang)
         } else {
-            ps.find_syntax_by_first_line(s)
+            ps.find_syntax_by_first_line(&self.code)
         }.unwrap_or_else(|| ps.find_syntax_plain_text());
         let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
-        for line in s.lines() {
+        for line in self.code.lines() {
             let regions: Vec<(Style, &str)> = h.highlight(&line);
             buf.push_str(&as_24_bit_terminal_escaped(&regions[..], true));
         }
         // Clear the formatting
         buf.push_str("\x1b[0m");
     }
-    fn write_buf(&self, buf: &mut String, text: Cow<'a, str>) {
+
+    fn write_buf(&mut self, buf: &mut String, text: Cow<'a, str>) {
         if self.in_code {
-            // self.highlight_lines(&text, buf);
-            buf.push_str(&text);
+            self.code.push_str(&(text + "\n"));
         } else {
             buf.push_str(&text);
         }
