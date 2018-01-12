@@ -1,5 +1,7 @@
 #![feature(nll, universal_impl_trait, conservative_impl_trait)]
 
+#[macro_use]
+extern crate lazy_static;
 extern crate pulldown_cmark;
 extern crate syntect;
 extern crate termion;

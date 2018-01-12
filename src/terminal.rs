@@ -8,9 +8,14 @@ use std::io::{self, Read};
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{Style, Theme, ThemeSet};
 use syntect::parsing::{ScopeStack, SyntaxDefinition, SyntaxSet};
-use syntect::util::as_24_bit_terminal_escaped;
+// use syntect::util::as_24_bit_terminal_escaped;
 use termion::color;
 use termion::style;
+
+lazy_static! {
+    static ref RESET_COLOR: String = format!("{}", color::Fg(color::Reset));
+    static ref RESET_STYLE: String = format!("{}", style::Reset);
+}
 
 pub trait MDParser<'a, I>
 where
@@ -34,8 +39,6 @@ pub struct Terminal<'a> {
     links: Vec<(Cow<'a, str>, Cow<'a, str>)>,
     ordered: bool,
     items: usize,
-    reset_color: String,
-    reset_style: String,
     in_code: bool,
     code: String,
     lang: Option<String>,
@@ -98,8 +101,6 @@ impl<'a> Terminal<'a> {
             links: Vec::new(),
             ordered: false,
             items: 0,
-            reset_color: format!("{}", color::Fg(color::Reset)),
-            reset_style: format!("{}", style::Reset),
             in_code: false,
             code: String::new(),
             lang: None,
@@ -228,7 +229,7 @@ impl<'a> Terminal<'a> {
                 buf.push_str(&format!("{}", style::Italic));
             }
             Tag::Strong => buf.push_str(&format!("{}", style::Bold)),
-            Tag::Code => buf.push_str("<code>"),
+            Tag::Code => buf.push_str(&format!("{}", style::Italic)),
             Tag::Link(dest, title) => {
                 buf.push_str(&format!("{}", style::Underline));
                 self.links.push((dest, title));
@@ -265,7 +266,7 @@ impl<'a> Terminal<'a> {
         match tag {
             Tag::Paragraph => fresh_line(buf),
             Tag::Rule => (),
-            Tag::Header(_) => buf.push_str(&self.reset_color),
+            Tag::Header(_) => buf.push_str(&RESET_COLOR),
             Tag::Table(_) => {
                 buf.push_str("</tbody></table>\n");
             }
@@ -283,20 +284,21 @@ impl<'a> Terminal<'a> {
                 }
                 self.table_cell_index += 1;
             }
-            Tag::BlockQuote => buf.push_str(&self.reset_color),
+            Tag::BlockQuote => buf.push_str(&RESET_COLOR),
             Tag::CodeBlock(_) => {
                 self.in_code = false;
                 self.write_code(buf);
-                buf.push_str(&format!("{}\n", self.reset_color));
+                buf.push_str(&RESET_COLOR);
+                fresh_line(buf);
             }
             Tag::List(Some(_)) => fresh_line(buf), // ol
             Tag::List(None) => fresh_line(buf),
             Tag::Item => (),
-            Tag::Emphasis => buf.push_str(&self.reset_style),
-            Tag::Strong => buf.push_str(&self.reset_style),
-            Tag::Code => buf.push_str("</code>"),
+            Tag::Emphasis => buf.push_str(&RESET_STYLE),
+            Tag::Strong => buf.push_str(&RESET_STYLE),
+            Tag::Code => buf.push_str(&RESET_STYLE),
             Tag::Link(_, _) => {
-                buf.push_str(&self.reset_style);
+                buf.push_str(&RESET_STYLE);
                 let num = self.links.len().to_string();
                 let l = String::from("[") + &num + "]";
                 buf.push_str(&l);
@@ -350,4 +352,35 @@ fn color_wheel(level: i32, m: i32) -> String {
         5 => format!("{}", color::Fg(color::Green)),
         _ => format!("{}", color::Fg(color::Blue)),
     }
+}
+fn as_24_bit_terminal_escaped(v: &[(Style, &str)], bg: bool) -> String {
+    let mut s: String = String::new();
+    for &(ref style, text) in v.iter() {
+        if bg {
+            let val =
+                fromrgb(style.background.r, style.background.g, style.background.b).to_string();
+            write!(s, csi!("38;5;", &val), "m");
+            // write!(
+            //     s,
+            //     "\x1b[48;5;{};{};{}m",
+            //     style.background.r, style.background.g, style.background.b
+            // ).unwrap();
+        }
+        // write!(
+        //     s,
+        //     "\x1b[38;5;{};{};{}m{}",
+        //     style.foreground.r, style.foreground.g, style.foreground.b, text
+        // ).unwrap();
+        let val = fromrgb(style.foreground.r, style.foreground.g, style.foreground.b).to_string();
+        write!(s, concat!("\x1B[38;5;", &val, "m"));
+    }
+    // s.push_str("\x1b[0m");
+    s
+}
+const fn fromrgb(red: u8, green: u8, blue: u8) -> u8 {
+    return 36 * r + 6 * g + b;
+}
+
+macro_rules! csi {
+    ($( $l:expr ),*) => { concat!("\x1B[", $( $l ),* ) };
 }
