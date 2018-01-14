@@ -60,7 +60,6 @@ fn run() -> Result<(), MarkdownError> {
         _ => event,
     });
     let term_size = termion::terminal_size()?;
-    println!("{}", truecolor);
     let mut terminal = Terminal::new(term_size, truecolor);
     let out = terminal.parse(p);
     print!("{}", out);

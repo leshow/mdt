@@ -378,7 +378,7 @@ fn as_24_bit_terminal_escaped(v: &[(Style, &str)], bg: bool) -> String {
     let mut res: String = String::new();
 
     for &(ref style, text) in v.iter() {
-        let Fg = Rgb(style.foreground.r, style.foreground.g, style.foreground.b);
+        // let Fg = Rgb(style.foreground.r, style.foreground.g, style.foreground.b);
         // let Bg = Rgb(style.background.r, style.background.g, style.foreground.b);
         // Fg.write_fg(&mut res);
         if bg {
@@ -388,17 +388,17 @@ fn as_24_bit_terminal_escaped(v: &[(Style, &str)], bg: bool) -> String {
                 style.background.r, style.background.g, style.background.b
             ).unwrap();
         }
-        // write!(
-        //     res,
-        //     "\x1b[38;2;{};{};{}m{}",
-        //     style.foreground.r, style.foreground.g, style.foreground.b, text
-        // ).unwrap();
         write!(
             res,
-            "\x1b[38;5;{}m{}",
-            fromrgb(style.foreground.r, style.foreground.g, style.foreground.b),
-            text
+            "\x1b[38;2;{};{};{}m{}",
+            style.foreground.r, style.foreground.g, style.foreground.b, text
         ).unwrap();
+        // write!(
+        //     res,
+        //     "\x1b[38;5;{}m{}",
+        //     fromrgb(style.foreground.r, style.foreground.g, style.foreground.b),
+        //     text
+        // ).unwrap();
     }
     res.push_str("\x1b[0m");
 
