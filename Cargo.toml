@@ -8,3 +8,4 @@ pulldown-cmark= { version ="0.1.0", default-features = false }
 termion = "1.5.1"
 syntect = "2.0.0"
 lazy_static = "1.0"
+getopts = "0.2"

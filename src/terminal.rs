@@ -30,6 +30,14 @@ enum TableState {
     Body,
 }
 
+struct Truecolor(bool);
+
+impl Default for Truecolor {
+    fn default() -> Self {
+        Truecolor(false)
+    }
+}
+
 pub struct Terminal<'a> {
     indent_lvl: usize,
     term_size: (u16, u16),
@@ -39,6 +47,7 @@ pub struct Terminal<'a> {
     links: Vec<(Cow<'a, str>, Cow<'a, str>)>,
     ordered: bool,
     items: usize,
+    truecolor: bool,
     in_code: bool,
     code: String,
     lang: Option<String>,
@@ -91,7 +100,7 @@ where
 }
 
 impl<'a> Terminal<'a> {
-    pub fn new(term_size: (u16, u16)) -> Terminal<'a> {
+    pub fn new(term_size: (u16, u16), truecolor: bool) -> Terminal<'a> {
         Terminal {
             table_state: TableState::Head,
             indent_lvl: 0,
@@ -101,6 +110,7 @@ impl<'a> Terminal<'a> {
             links: Vec::new(),
             ordered: false,
             items: 0,
+            truecolor,
             in_code: false,
             code: String::new(),
             lang: None,
@@ -139,9 +149,7 @@ impl<'a> Terminal<'a> {
             }
             Tag::Rule => {
                 fresh_line(buf);
-                let w = self.width();
-                let r = "-".repeat(w);
-                buf.push_str(&r);
+                buf.push_str(&"-".repeat(self.width()));
             }
             Tag::Header(level) => {
                 fresh_line(buf);
@@ -341,7 +349,11 @@ impl<'a> Terminal<'a> {
 
     fn write_buf(&mut self, buf: &mut String, text: Cow<'a, str>) {
         if self.in_code {
-            self.code.push_str(&text);
+            if self.truecolor {
+                self.code.push_str(&text);
+            } else {
+                buf.push_str(&format!("  {}", text));
+            }
         } else {
             buf.push_str(&text);
         }
@@ -376,10 +388,16 @@ fn as_24_bit_terminal_escaped(v: &[(Style, &str)], bg: bool) -> String {
                 style.background.r, style.background.g, style.background.b
             ).unwrap();
         }
+        // write!(
+        //     res,
+        //     "\x1b[38;2;{};{};{}m{}",
+        //     style.foreground.r, style.foreground.g, style.foreground.b, text
+        // ).unwrap();
         write!(
             res,
-            "\x1b[38;2;{};{};{}m{}",
-            style.foreground.r, style.foreground.g, style.foreground.b, text
+            "\x1b[38;5;{}m{}",
+            fromrgb(style.foreground.r, style.foreground.g, style.foreground.b),
+            text
         ).unwrap();
     }
     res.push_str("\x1b[0m");
