@@ -36,8 +36,8 @@ If you have a terminal that supports truecolor (24-bit color), you can pass a fl
 Not working:
 
 1. Tables
-2. Images
-3. Inline html (not planned)
+1. Images
+1. Inline html (not planned)
 
 #### Test header (ignore this)
 
@@ -49,18 +49,13 @@ function foo(x) {
 
 firstly,
 
-1. One
-1. Two
-1. Three
-1. Four
-
 ```rust
 fn highlight_lines(&self, s: &str, buf: &mut String) {
     let ts = ThemeSet::load_defaults();
     let ps = SyntaxSet::load_defaults_nonewlines();
 
     let syntax = if let Some(ref lang) = self.lang {
-        ps.find_syntax_by_name(lang)
+        ps.find_syntax_by_token(lang)
     } else {
         ps.find_syntax_by_first_line(s)
     }.unwrap_or_else(|| ps.find_syntax_plain_text());
@@ -73,6 +68,8 @@ fn highlight_lines(&self, s: &str, buf: &mut String) {
     }
 }
 ```
+
+Unordered List:
 
 * list item
 * list two

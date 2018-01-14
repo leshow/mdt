@@ -329,9 +329,8 @@ impl<'a> Terminal<'a> {
     fn write_code(&mut self, buf: &mut String) {
         let ts = ThemeSet::load_defaults();
         let ps = SyntaxSet::load_defaults_newlines();
-
         let syntax = if let Some(ref lang) = self.lang {
-            ps.find_syntax_by_extension(lang)
+            ps.find_syntax_by_token(lang)
         } else {
             ps.find_syntax_by_first_line(&self.code)
         }.unwrap_or_else(|| ps.find_syntax_plain_text());
