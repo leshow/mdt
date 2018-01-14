@@ -3,13 +3,13 @@ use escape::{escape_href, escape_html};
 use pulldown_cmark::{Alignment, Event, Tag};
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::fmt::{self, Write};
+use std::fmt::{self, Formatter, Write};
 use std::io::{self, Read};
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{Style, Theme, ThemeSet};
 use syntect::parsing::{ScopeStack, SyntaxDefinition, SyntaxSet};
 // use syntect::util::as_24_bit_terminal_escaped;
-use termion::color;
+use termion::color::{self, Color, Rgb};
 use termion::style;
 
 lazy_static! {
@@ -229,7 +229,7 @@ impl<'a> Terminal<'a> {
                 buf.push_str(&format!("{}", style::Italic));
             }
             Tag::Strong => buf.push_str(&format!("{}", style::Bold)),
-            Tag::Code => buf.push_str(&format!("{}", style::Italic)),
+            Tag::Code => buf.push_str(&format!("`{}", style::Italic)),
             Tag::Link(dest, title) => {
                 buf.push_str(&format!("{}", style::Underline));
                 self.links.push((dest, title));
@@ -266,7 +266,10 @@ impl<'a> Terminal<'a> {
         match tag {
             Tag::Paragraph => fresh_line(buf),
             Tag::Rule => (),
-            Tag::Header(_) => buf.push_str(&RESET_COLOR),
+            Tag::Header(_) => {
+                fresh_line(buf);
+                buf.push_str(&RESET_COLOR);
+            }
             Tag::Table(_) => {
                 buf.push_str("</tbody></table>\n");
             }
@@ -296,7 +299,10 @@ impl<'a> Terminal<'a> {
             Tag::Item => (),
             Tag::Emphasis => buf.push_str(&RESET_STYLE),
             Tag::Strong => buf.push_str(&RESET_STYLE),
-            Tag::Code => buf.push_str(&RESET_STYLE),
+            Tag::Code => {
+                buf.push_str("`");
+                buf.push_str(&RESET_STYLE);
+            }
             Tag::Link(_, _) => {
                 buf.push_str(&RESET_STYLE);
                 let num = self.links.len().to_string();
@@ -312,7 +318,7 @@ impl<'a> Terminal<'a> {
 
     fn hard_break(&mut self) {}
 
-    fn write_code(&self, buf: &mut String) {
+    fn write_code(&mut self, buf: &mut String) {
         let ts = ThemeSet::load_defaults();
         let ps = SyntaxSet::load_defaults_newlines();
 
@@ -324,15 +330,18 @@ impl<'a> Terminal<'a> {
         let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
         for line in self.code.lines() {
             let regions: Vec<(Style, &str)> = h.highlight(&line);
-            buf.push_str(&as_24_bit_terminal_escaped(&regions[..], true));
+            let highlighted = format!("  {}", as_24_bit_terminal_escaped(&regions[..], false));
+            buf.push_str(&highlighted);
+            buf.push_str("\n");
         }
         // Clear the formatting
         buf.push_str("\x1b[0m");
+        self.code = String::new();
     }
 
     fn write_buf(&mut self, buf: &mut String, text: Cow<'a, str>) {
         if self.in_code {
-            self.code.push_str(&(text + "\n"));
+            self.code.push_str(&text);
         } else {
             buf.push_str(&text);
         }
@@ -354,31 +363,32 @@ fn color_wheel(level: i32, m: i32) -> String {
     }
 }
 fn as_24_bit_terminal_escaped(v: &[(Style, &str)], bg: bool) -> String {
-    let mut s: String = String::new();
+    let mut res: String = String::new();
+
     for &(ref style, text) in v.iter() {
+        let Fg = Rgb(style.foreground.r, style.foreground.g, style.foreground.b);
+        // let Bg = Rgb(style.background.r, style.background.g, style.foreground.b);
+        // Fg.write_fg(&mut res);
         if bg {
-            let val =
-                fromrgb(style.background.r, style.background.g, style.background.b).to_string();
-            write!(s, csi!("38;5;", &val), "m");
-            // write!(
-            //     s,
-            //     "\x1b[48;5;{};{};{}m",
-            //     style.background.r, style.background.g, style.background.b
-            // ).unwrap();
+            write!(
+                res,
+                "\x1b[48;2;{};{};{}m",
+                style.background.r, style.background.g, style.background.b
+            ).unwrap();
         }
-        // write!(
-        //     s,
-        //     "\x1b[38;5;{};{};{}m{}",
-        //     style.foreground.r, style.foreground.g, style.foreground.b, text
-        // ).unwrap();
-        let val = fromrgb(style.foreground.r, style.foreground.g, style.foreground.b).to_string();
-        write!(s, concat!("\x1B[38;5;", &val, "m"));
+        write!(
+            res,
+            "\x1b[38;2;{};{};{}m{}",
+            style.foreground.r, style.foreground.g, style.foreground.b, text
+        ).unwrap();
     }
-    // s.push_str("\x1b[0m");
-    s
+    res.push_str("\x1b[0m");
+
+    res
 }
-const fn fromrgb(red: u8, green: u8, blue: u8) -> u8 {
-    return 36 * r + 6 * g + b;
+
+fn fromrgb(r: u8, g: u8, b: u8) -> u16 {
+    return 16 + 36 * (r as u16) + 6 * (g as u16) + (b as u16);
 }
 
 macro_rules! csi {
