@@ -228,9 +228,10 @@ impl<'a> Terminal<'a> {
                 fresh_line(buf);
                 if self.ordered {
                     self.inc_li();
+                    buf.push_str(" ");
                     buf.push_str(&(self.items.to_string() + ". "));
                 } else {
-                    buf.push_str("* ");
+                    buf.push_str(" * ");
                 }
             }
             Tag::Emphasis => {
