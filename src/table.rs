@@ -32,9 +32,16 @@ pub trait DrawTable {
     fn draw(&mut self) -> Self::Output;
 }
 
-struct AsciiTable {}
+struct AsciiTable<'a> {
+    pub table: Vec<&'a str>,
+}
+impl<'a> AsciiTable<'a> {
+    fn new() -> Self {
+        AsciiTable { table: Vec::new() }
+    }
+}
 
-impl DrawTable for AsciiTable {
+impl<'a> DrawTable for AsciiTable<'a> {
     type Output = String;
     const F_INNER_HORIZONTAL: char = '-';
     const F_INNER_INTERSECT: char = '+';

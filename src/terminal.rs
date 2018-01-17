@@ -8,7 +8,7 @@ use std::io::{self, Read};
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{Style, Theme, ThemeSet};
 use syntect::parsing::{ScopeStack, SyntaxDefinition, SyntaxSet};
-use table;
+use table::DrawTable;
 // use syntect::util::as_24_bit_terminal_escaped;
 use termion::color::{self, Color, Rgb};
 use termion::style;
@@ -39,9 +39,10 @@ impl Default for Truecolor {
     }
 }
 
-pub struct Terminal<'a> {
+pub struct Terminal<'a, T> {
     indent_lvl: usize,
     term_size: (u16, u16),
+    table: T,
     table_state: TableState,
     table_alignments: Vec<Alignment>,
     table_cell_index: usize,
@@ -55,9 +56,10 @@ pub struct Terminal<'a> {
     dontskip: bool,
 }
 
-impl<'a, I> MDParser<'a, I> for Terminal<'a>
+impl<'a, I, T> MDParser<'a, I> for Terminal<'a, T>
 where
     I: Iterator<Item = Event<'a>>,
+    T: DrawTable<Output = String>,
 {
     type Output = String;
     fn parse(&mut self, iter: I) -> Self::Output {
@@ -100,12 +102,16 @@ where
     }
 }
 
-impl<'a> Terminal<'a> {
-    pub fn new(term_size: (u16, u16), truecolor: bool) -> Terminal<'a> {
+impl<'a, T> Terminal<'a, T>
+where
+    T: DrawTable<Output = String>,
+{
+    pub fn new(term_size: (u16, u16), truecolor: bool, table: T) -> Terminal<'a, T> {
         Terminal {
             table_state: TableState::Head,
             indent_lvl: 0,
             term_size,
+            table,
             table_alignments: Vec::new(),
             table_cell_index: 0,
             links: Vec::new(),
