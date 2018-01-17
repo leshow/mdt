@@ -32,11 +32,11 @@ pub trait DrawTable {
     fn draw(&mut self) -> Self::Output;
 }
 
-struct AsciiTable<'a> {
+pub struct AsciiTable<'a> {
     pub table: Vec<&'a str>,
 }
 impl<'a> AsciiTable<'a> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         AsciiTable { table: Vec::new() }
     }
 }

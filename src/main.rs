@@ -17,8 +17,8 @@ use std::fmt;
 use std::io::{self, Read, Write};
 
 mod escape;
-mod table;
-mod terminal;
+pub mod table;
+pub mod terminal;
 use terminal::{MDParser, Terminal};
 
 fn main() {
