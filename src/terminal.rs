@@ -153,34 +153,45 @@ impl<'a> Terminal<'a> {
             }
             Tag::Header(level) => {
                 fresh_line(buf);
-                let steeze = format!("{}", color::Fg(color::Red));
-                let r = steeze + &"#".repeat(level as usize) + " ";
-                buf.push_str(&r);
+                buf.push_str(&format!(
+                    "{}{} {} ",
+                    color::Fg(color::Yellow),
+                    "#".repeat(level as usize),
+                    color::Fg(color::Red)
+                ));
             }
             Tag::Table(alignments) => {
                 self.table_alignments = alignments;
-                buf.push_str("<table>");
+                // println!("{:?}", self.table_alignments);
+                // buf.push_str("<table>");
+                fresh_line(buf);
             }
             Tag::TableHead => {
                 self.table_state = TableState::Head;
-                buf.push_str("<thead><tr>");
+                // buf.push_str("<thead><tr>");
+                buf.push_str("|");
             }
             Tag::TableRow => {
                 self.table_cell_index = 0;
-                buf.push_str("<tr>");
+                // buf.push_str("<tr>");
+                buf.push_str("|");
             }
             Tag::TableCell => {
+                // match self.table_state {
+                //     TableState::Head => buf.push_str("<th"),
+                //     TableState::Body => buf.push_str("<td"),
+                // }
                 match self.table_state {
-                    TableState::Head => buf.push_str("<th"),
-                    TableState::Body => buf.push_str("<td"),
+                    TableState::Head => buf.push_str("|"),
+                    TableState::Body => (),
                 }
-                match self.table_alignments.get(self.table_cell_index) {
-                    Some(&Alignment::Left) => buf.push_str(" align=\"left\""),
-                    Some(&Alignment::Center) => buf.push_str(" align=\"center\""),
-                    Some(&Alignment::Right) => buf.push_str(" align=\"right\""),
-                    _ => (),
-                }
-                buf.push_str(">");
+                // match self.table_alignments.get(self.table_cell_index) {
+                //     Some(&Alignment::Left) => buf.push_str(" align=\"left\""),
+                //     Some(&Alignment::Center) => buf.push_str(" align=\"center\""),
+                //     Some(&Alignment::Right) => buf.push_str(" align=\"right\""),
+                //     _ => (),
+                // }
+                // buf.push_str(">");
             }
             Tag::BlockQuote => {
                 fresh_line(buf);
@@ -231,7 +242,8 @@ impl<'a> Terminal<'a> {
                     buf.push_str(" ");
                     buf.push_str(&(self.items.to_string() + ". "));
                 } else {
-                    buf.push_str(" * ");
+                    buf.push_str(&format!("{} * ", color::Fg(color::Red)));
+                    buf.push_str(&RESET_COLOR);
                 }
             }
             Tag::Emphasis => {
@@ -280,20 +292,24 @@ impl<'a> Terminal<'a> {
                 buf.push_str(&RESET_COLOR);
             }
             Tag::Table(_) => {
-                buf.push_str("</tbody></table>\n");
+                // buf.push_str("</tbody></table>\n");
+                buf.push_str("|\n");
             }
             Tag::TableHead => {
-                buf.push_str("</tr></thead><tbody>\n");
+                buf.push_str("|\n");
+                // buf.push_str("</tr></thead><tbody>\n");
                 self.table_state = TableState::Body;
             }
             Tag::TableRow => {
-                buf.push_str("</tr>\n");
+                // buf.push_str("</tr>\n");
+                buf.push_str("|\n");
             }
             Tag::TableCell => {
-                match self.table_state {
-                    TableState::Head => buf.push_str("</th>"),
-                    TableState::Body => buf.push_str("</td>"),
-                }
+                // match self.table_state {
+                //     _ => buf.push_str("|")
+                //     // TableState::Head => buf.push_str("</th>"),
+                //     // TableState::Body => buf.push_str("</td>"),
+                // }
                 self.table_cell_index += 1;
             }
             Tag::BlockQuote => buf.push_str(&RESET_COLOR),

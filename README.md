@@ -69,6 +69,22 @@ fn highlight_lines(&self, s: &str, buf: &mut String) {
 }
 ```
 
+Tables:
+
+| Feature     | Working            |
+| ----------- | ------------------ |
+| paragraphs  | :white_check_mark: |
+| rule        | :white_check_mark: |
+| headers     | :white_check_mark: |
+| lists       | :white_check_mark: |
+| bold        | :white_check_mark: |
+| italic      | :white_check_mark: |
+| footnotes   | :white_check_mark: |
+| links       | :white_check_mark: |
+| tables      | :poop:             |
+| images      | :poop:             |
+| inline html | :poop:             |
+
 Unordered List:
 
 * list item
