@@ -8,6 +8,7 @@ use std::io::{self, Read};
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{Style, Theme, ThemeSet};
 use syntect::parsing::{ScopeStack, SyntaxDefinition, SyntaxSet};
+use table;
 // use syntect::util::as_24_bit_terminal_escaped;
 use termion::color::{self, Color, Rgb};
 use termion::style;

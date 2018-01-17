@@ -1,4 +1,4 @@
-trait DrawTable {
+pub trait DrawTable {
     type Output;
     const F_INNER_HORIZONTAL: char;
     const F_INNER_INTERSECT: char;
