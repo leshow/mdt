@@ -14,7 +14,7 @@ use pulldown_cmark::{Event, Options, Parser, OPTION_ENABLE_FOOTNOTES, OPTION_ENA
 use std::env;
 use std::error::Error;
 use std::fmt;
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 
 mod escape;
 mod terminal;
@@ -30,6 +30,8 @@ fn run() -> Result<(), MarkdownError> {
     // parse args
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
+    // let mut term = io::stdout().into_raw_mode().unwrap();
+    // println!("{:?}", term.available_colors().unwrap());
 
     let mut opts = GetOpts::new();
     opts.optflag(
@@ -60,9 +62,12 @@ fn run() -> Result<(), MarkdownError> {
         _ => event,
     });
     let term_size = termion::terminal_size()?;
+
     let mut terminal = Terminal::new(term_size, truecolor);
     let out = terminal.parse(p);
-    print!("{}", out);
+    io::stdout().write_all(out.as_bytes())?;
+    io::stdout().flush()?;
+
     Ok(())
 }
 
