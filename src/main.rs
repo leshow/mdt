@@ -1,4 +1,4 @@
-#![feature(nll, universal_impl_trait, conservative_impl_trait, associated_consts)]
+#![feature(universal_impl_trait, conservative_impl_trait)]
 
 extern crate getopts;
 #[macro_use]
@@ -19,7 +19,7 @@ use std::io::{self, Read, Write};
 mod escape;
 pub mod table;
 pub mod terminal;
-use terminal::{MDParser, Terminal};
+use terminal::{MDParser, TermAscii};
 
 fn main() {
     if let Err(e) = run() {
@@ -64,7 +64,7 @@ fn run() -> Result<(), MarkdownError> {
     });
     let term_size = termion::terminal_size()?;
 
-    let mut terminal = Terminal::new(term_size, truecolor);
+    let mut terminal = TermAscii::new(term_size, truecolor);
     let out = terminal.parse(p);
     io::stdout().write_all(out.as_bytes())?;
     io::stdout().flush()?;

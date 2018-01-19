@@ -1,5 +1,6 @@
-pub trait DrawTable {
+pub trait Table {
     type Output;
+    type Item;
     const F_INNER_HORIZONTAL: char;
     const F_INNER_INTERSECT: char;
     const F_INNER_VERTICAL: char;
@@ -29,20 +30,18 @@ pub trait DrawTable {
     const OUTER_TOP_INTERSECT: char;
     const OUTER_TOP_LEFT: char;
     const OUTER_TOP_RIGHT: char;
+    fn new() -> Self;
     fn draw(&mut self) -> Self::Output;
+    fn push(&mut self, item: Self::Item);
 }
 
-pub struct AsciiTable<'a> {
-    pub table: Vec<&'a str>,
-}
-impl<'a> AsciiTable<'a> {
-    pub fn new() -> Self {
-        AsciiTable { table: Vec::new() }
-    }
+pub struct AsciiTable<'item> {
+    pub table: Vec<&'item str>,
 }
 
-impl<'a> DrawTable for AsciiTable<'a> {
+impl<'item> Table for AsciiTable<'item> {
     type Output = String;
+    type Item = &'item str;
     const F_INNER_HORIZONTAL: char = '-';
     const F_INNER_INTERSECT: char = '+';
     const F_INNER_VERTICAL: char = '|';
@@ -72,8 +71,15 @@ impl<'a> DrawTable for AsciiTable<'a> {
     const OUTER_TOP_INTERSECT: char = '+';
     const OUTER_TOP_LEFT: char = '+';
     const OUTER_TOP_RIGHT: char = '+';
+
     fn draw(&mut self) -> Self::Output {
         let mut res = String::new();
         res
+    }
+    fn new() -> Self {
+        AsciiTable { table: Vec::new() }
+    }
+    fn push(&mut self, item: Self::Item) {
+        self.table.push(item);
     }
 }

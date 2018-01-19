@@ -1,22 +1,25 @@
 use MarkdownError::*;
 use escape::{escape_href, escape_html};
 use pulldown_cmark::{Alignment, Event, Tag};
+use std::borrow::Borrow;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::{self, Formatter, Write};
 use std::io::{self, Read};
 use syntect::easy::HighlightLines;
-use syntect::highlighting::{Style, Theme, ThemeSet};
-use syntect::parsing::{ScopeStack, SyntaxDefinition, SyntaxSet};
-use table::{AsciiTable, DrawTable};
+use syntect::highlighting::{Style, ThemeSet};
+use syntect::parsing::SyntaxSet;
+use table::{AsciiTable, Table};
 // use syntect::util::as_24_bit_terminal_escaped;
-use termion::color::{self, Color, Rgb};
+use termion::color;
 use termion::style;
 
 lazy_static! {
     static ref RESET_COLOR: String = format!("{}", color::Fg(color::Reset));
     static ref RESET_STYLE: String = format!("{}", style::Reset);
 }
+
+pub type TermAscii<'a, 'table> = Terminal<'a, AsciiTable<'table>>;
 
 pub trait MDParser<'a, I>
 where
@@ -31,10 +34,11 @@ enum TableState {
     Body,
 }
 
-pub struct Terminal<'a, T: DrawTable<Output = String>> {
+pub struct Terminal<'a, T> {
     indent_lvl: usize,
     term_size: (u16, u16),
     table: T,
+    in_table: bool,
     table_state: TableState,
     table_alignments: Vec<Alignment>,
     table_cell_index: usize,
@@ -50,17 +54,25 @@ pub struct Terminal<'a, T: DrawTable<Output = String>> {
 
 impl<'a, T> Default for Terminal<'a, T>
 where
-    T: DrawTable<Output = String>,
+    T: Table,
 {
     fn default() -> Self {
         Terminal {
             table_state: TableState::Head,
-            table: AsciiTable::new(),
+            table: T::new(),
+            table_alignments: Vec::new(),
+            table_cell_index: 0,
+            in_table: false,
             in_code: false,
             lang: None,
             dontskip: false,
             ordered: false,
-            ..Default::default()
+            items: 0,
+            code: String::new(),
+            indent_lvl: 0,
+            term_size: (100, 100),
+            links: Vec::new(),
+            truecolor: false,
         }
     }
 }
@@ -68,7 +80,7 @@ where
 impl<'a, I, T> MDParser<'a, I> for Terminal<'a, T>
 where
     I: Iterator<Item = Event<'a>>,
-    T: DrawTable<Output = String>,
+    T: Table,
 {
     type Output = String;
     fn parse(&mut self, iter: I) -> Self::Output {
@@ -113,25 +125,13 @@ where
 
 impl<'a, T> Terminal<'a, T>
 where
-    T: DrawTable<Output = String>,
+    T: Table,
 {
     pub fn new(term_size: (u16, u16), truecolor: bool) -> Terminal<'a, T> {
         Terminal {
-            // table_state: TableState::Head,
-            // indent_lvl: 0,
             term_size,
-            // table,
-            // table_alignments: Vec::new(),
-            // table_cell_index: 0,
-            // links: Vec::new(),
-            // ordered: false,
-            // items: 0,
             truecolor,
             ..Terminal::default()
-            // in_code: false,
-            // code: String::new(),
-            // lang: None,
-            // dontskip: false,
         }
     }
 
@@ -185,30 +185,25 @@ where
             }
             Tag::TableHead => {
                 self.table_state = TableState::Head;
-                // buf.push_str("<thead><tr>");
-                buf.push_str("|");
+                buf.push_str("<thead><tr>");
             }
             Tag::TableRow => {
                 self.table_cell_index = 0;
-                // buf.push_str("<tr>");
-                buf.push_str("|");
+                buf.push_str("<tr>");
             }
             Tag::TableCell => {
-                // match self.table_state {
-                //     TableState::Head => buf.push_str("<th"),
-                //     TableState::Body => buf.push_str("<td"),
-                // }
                 match self.table_state {
-                    TableState::Head => buf.push_str("|"),
-                    TableState::Body => (),
+                    TableState::Head => buf.push_str("<th"),
+                    TableState::Body => buf.push_str("<td"),
                 }
-                // match self.table_alignments.get(self.table_cell_index) {
-                //     Some(&Alignment::Left) => buf.push_str(" align=\"left\""),
-                //     Some(&Alignment::Center) => buf.push_str(" align=\"center\""),
-                //     Some(&Alignment::Right) => buf.push_str(" align=\"right\""),
-                //     _ => (),
-                // }
-                // buf.push_str(">");
+
+                match self.table_alignments.get(self.table_cell_index) {
+                    Some(&Alignment::Left) => buf.push_str(" align=\"left\""),
+                    Some(&Alignment::Center) => buf.push_str(" align=\"center\""),
+                    Some(&Alignment::Right) => buf.push_str(" align=\"right\""),
+                    _ => (),
+                }
+                buf.push_str(">");
             }
             Tag::BlockQuote => {
                 fresh_line(buf);
@@ -309,24 +304,21 @@ where
                 buf.push_str(&RESET_COLOR);
             }
             Tag::Table(_) => {
-                // buf.push_str("</tbody></table>\n");
-                buf.push_str("|\n");
+                self.in_table = false;
+                buf.push_str("</tbody></table>\n");
             }
             Tag::TableHead => {
-                buf.push_str("|\n");
-                // buf.push_str("</tr></thead><tbody>\n");
+                buf.push_str("</tr></thead><tbody>\n");
                 self.table_state = TableState::Body;
             }
             Tag::TableRow => {
-                // buf.push_str("</tr>\n");
-                buf.push_str("|\n");
+                buf.push_str("</tr>\n");
             }
             Tag::TableCell => {
-                // match self.table_state {
-                //     _ => buf.push_str("|")
-                //     // TableState::Head => buf.push_str("</th>"),
-                //     // TableState::Body => buf.push_str("</td>"),
-                // }
+                match self.table_state {
+                    TableState::Head => buf.push_str("</th>"),
+                    TableState::Body => buf.push_str("</td>"),
+                }
                 self.table_cell_index += 1;
             }
             Tag::BlockQuote => buf.push_str(&RESET_COLOR),
@@ -387,6 +379,8 @@ where
             } else {
                 buf.push_str(&format!("  {}", text));
             }
+        } else if self.in_table {
+            self.table.push(text.borrow());
         } else {
             buf.push_str(&text);
         }
