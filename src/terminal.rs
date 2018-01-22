@@ -19,7 +19,7 @@ lazy_static! {
     static ref RESET_STYLE: String = format!("{}", style::Reset);
 }
 
-pub type TermAscii<'a, 'table> = Terminal<'a, AsciiTable<'table>>;
+pub type TermAscii<'a> = Terminal<'a, AsciiTable>;
 
 pub trait MDParser<'a, I>
 where
@@ -77,10 +77,11 @@ where
     }
 }
 
-impl<'a, I, T> MDParser<'a, I> for Terminal<'a, T>
+impl<'a, I, T, O> MDParser<'a, I> for Terminal<'a, T>
 where
     I: Iterator<Item = Event<'a>>,
-    T: Table,
+    T: Table<Output = O>,
+    O: From<Cow<'a, str>>,
 {
     type Output = String;
     fn parse(&mut self, iter: I) -> Self::Output {
@@ -123,9 +124,10 @@ where
     }
 }
 
-impl<'a, T> Terminal<'a, T>
+impl<'a, T, O> Terminal<'a, T>
 where
-    T: Table,
+    T: Table<Output = O>,
+    O: From<Cow<'a, str>>,
 {
     pub fn new(term_size: (u16, u16), truecolor: bool) -> Terminal<'a, T> {
         Terminal {
@@ -380,7 +382,7 @@ where
                 buf.push_str(&format!("  {}", text));
             }
         } else if self.in_table {
-            self.table.push(text.borrow());
+            self.table.push_back(text);
         } else {
             buf.push_str(&text);
         }

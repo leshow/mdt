@@ -1,6 +1,5 @@
 pub trait Table {
     type Output;
-    type Item;
     const F_INNER_HORIZONTAL: char;
     const F_INNER_INTERSECT: char;
     const F_INNER_VERTICAL: char;
@@ -32,16 +31,16 @@ pub trait Table {
     const OUTER_TOP_RIGHT: char;
     fn new() -> Self;
     fn draw(&mut self) -> Self::Output;
-    fn push(&mut self, item: Self::Item);
+    fn push_back(&mut self, item: impl Into<Self::Output>);
 }
 
-pub struct AsciiTable<'item> {
-    pub table: Vec<&'item str>,
+pub struct AsciiTable {
+    pub table: Vec<String>,
 }
 
-impl<'item> Table for AsciiTable<'item> {
+impl Table for AsciiTable {
     type Output = String;
-    type Item = &'item str;
+
     const F_INNER_HORIZONTAL: char = '-';
     const F_INNER_INTERSECT: char = '+';
     const F_INNER_VERTICAL: char = '|';
@@ -76,10 +75,12 @@ impl<'item> Table for AsciiTable<'item> {
         let mut res = String::new();
         res
     }
+
     fn new() -> Self {
         AsciiTable { table: Vec::new() }
     }
-    fn push(&mut self, item: Self::Item) {
-        self.table.push(item);
+
+    fn push_back(&mut self, item: impl Into<Self::Output>) {
+        self.table.push(item.into());
     }
 }
