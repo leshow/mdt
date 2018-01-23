@@ -1,4 +1,16 @@
-pub trait Table {
+// use pulldown_cmark::Alignment;
+use std::fmt::{self, Display};
+
+pub trait TableFns {
+    fn set_table_state(&mut self, state: TableState);
+    fn table_state(&self) -> TableState;
+    fn inc_col(&mut self);
+    fn inc_index(&mut self);
+    fn set_index(&mut self, idx: usize);
+    fn index(&self) -> usize;
+}
+
+pub trait Table: TableFns {
     type Output;
     const F_INNER_HORIZONTAL: char;
     const F_INNER_INTERSECT: char;
@@ -31,12 +43,63 @@ pub trait Table {
     const OUTER_TOP_RIGHT: char;
     fn new() -> Self;
     fn draw(&mut self) -> Self::Output;
-    fn push_back(&mut self, item: impl Into<Self::Output>);
+    fn push(&mut self, item: &str);
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum TableState {
+    Head,
+    Body,
+}
+
+impl Default for TableState {
+    fn default() -> Self {
+        TableState::Head
+    }
+}
+
+#[derive(Debug, Default)]
 pub struct AsciiTable {
     pub table: Vec<String>,
+    cur: usize,
+    table_state: TableState,
+    col_count: usize,
+    // table_alignments: Vec<Alignment>,
+    table_cell_index: usize,
 }
+
+macro_rules! impl_table {
+    ($name:ident) => (
+        impl TableFns for $name {
+            fn set_table_state(&mut self, state: TableState) {
+                self.table_state = state;
+            }
+
+            fn table_state(&self) -> TableState {
+                self.table_state
+            }
+
+            fn inc_col(&mut self) {
+                self.col_count += 1;
+            }
+
+            fn inc_index(&mut self) {
+                self.table_cell_index += 1;
+                self.cur += 1;
+            }
+
+            fn index(&self) -> usize {
+                self.table_cell_index
+            }
+
+            fn set_index(&mut self, idx: usize) {
+                self.table_cell_index = idx;
+            }
+        }
+    )
+}
+
+impl_table!(AsciiTable);
 
 impl Table for AsciiTable {
     type Output = String;
@@ -72,15 +135,53 @@ impl Table for AsciiTable {
     const OUTER_TOP_RIGHT: char = '+';
 
     fn draw(&mut self) -> Self::Output {
-        let mut res = String::new();
-        res
+        format!("{}", self)
     }
 
     fn new() -> Self {
-        AsciiTable { table: Vec::new() }
+        AsciiTable {
+            ..Default::default()
+        }
     }
 
-    fn push_back(&mut self, item: impl Into<Self::Output>) {
-        self.table.push(item.into());
+    fn push(&mut self, item: &str) {
+        let len = self.table.len();
+        if len == self.cur {
+            self.table.push(String::from(item));
+        } else {
+            self.table[self.cur].push_str(&item);
+        }
+    }
+}
+
+impl Display for AsciiTable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}{}",
+            AsciiTable::OUTER_TOP_LEFT,
+            AsciiTable::OUTER_TOP_HORIZONTAL
+        );
+        let total_len: usize = self.table[0..self.table_cell_index]
+            .iter()
+            .map(|x| x.len())
+            .sum();
+        write!(
+            f,
+            "{}{}{}",
+            AsciiTable::OUTER_TOP_HORIZONTAL,
+            AsciiTable::OUTER_TOP_INTERSECT,
+            AsciiTable::OUTER_TOP_HORIZONTAL
+        );
+        write!(
+            f,
+            "{}{}",
+            AsciiTable::OUTER_TOP_HORIZONTAL,
+            AsciiTable::OUTER_TOP_RIGHT
+        );
+        for row in 0..(self.table.len() / self.table_cell_index) {
+            // write!(f, "",)
+        }
+        Ok(())
     }
 }

@@ -1,4 +1,4 @@
-#![feature(universal_impl_trait, conservative_impl_trait, const_fn, type_ascription)]
+#![feature(universal_impl_trait, conservative_impl_trait)]
 
 extern crate getopts;
 #[macro_use]

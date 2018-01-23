@@ -1,15 +1,15 @@
 use MarkdownError::*;
 use escape::{escape_href, escape_html};
 use pulldown_cmark::{Alignment, Event, Tag};
-use std::borrow::Borrow;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::{self, Formatter, Write};
+use std::fmt::Debug;
 use std::io::{self, Read};
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{Style, ThemeSet};
 use syntect::parsing::SyntaxSet;
-use table::{AsciiTable, Table};
+use table::{AsciiTable, Table, TableState};
 // use syntect::util::as_24_bit_terminal_escaped;
 use termion::color;
 use termion::style;
@@ -29,19 +29,12 @@ where
     fn parse(&mut self, iter: I) -> Self::Output;
 }
 
-enum TableState {
-    Head,
-    Body,
-}
-
 pub struct Terminal<'a, T> {
     indent_lvl: usize,
     term_size: (u16, u16),
-    table: T,
     in_table: bool,
-    table_state: TableState,
     table_alignments: Vec<Alignment>,
-    table_cell_index: usize,
+    table: T,
     links: Vec<(Cow<'a, str>, Cow<'a, str>)>,
     ordered: bool,
     items: usize,
@@ -58,11 +51,9 @@ where
 {
     fn default() -> Self {
         Terminal {
-            table_state: TableState::Head,
             table: T::new(),
-            table_alignments: Vec::new(),
-            table_cell_index: 0,
             in_table: false,
+            table_alignments: Vec::new(),
             in_code: false,
             lang: None,
             dontskip: false,
@@ -80,7 +71,7 @@ where
 impl<'a, I, T, O> MDParser<'a, I> for Terminal<'a, T>
 where
     I: Iterator<Item = Event<'a>>,
-    T: Table<Output = O>,
+    T: Table<Output = O> + Debug,
     O: From<Cow<'a, str>>,
 {
     type Output = String;
@@ -126,7 +117,7 @@ where
 
 impl<'a, T, O> Terminal<'a, T>
 where
-    T: Table<Output = O>,
+    T: Table<Output = O> + Debug,
     O: From<Cow<'a, str>>,
 {
     pub fn new(term_size: (u16, u16), truecolor: bool) -> Terminal<'a, T> {
@@ -181,25 +172,26 @@ where
             }
             Tag::Table(alignments) => {
                 self.table_alignments = alignments;
-                // println!("{:?}", self.table_alignments);
+                self.in_table = true;
                 // buf.push_str("<table>");
                 fresh_line(buf);
             }
             Tag::TableHead => {
-                self.table_state = TableState::Head;
+                // self.table_state = TableState::Head;
+                self.table.set_table_state(TableState::Head);
                 buf.push_str("<thead><tr>");
             }
             Tag::TableRow => {
-                self.table_cell_index = 0;
+                self.table.set_index(0);
                 buf.push_str("<tr>");
             }
             Tag::TableCell => {
-                match self.table_state {
+                match self.table.table_state() {
                     TableState::Head => buf.push_str("<th"),
                     TableState::Body => buf.push_str("<td"),
                 }
 
-                match self.table_alignments.get(self.table_cell_index) {
+                match self.table_alignments.get(self.table.index()) {
                     Some(&Alignment::Left) => buf.push_str(" align=\"left\""),
                     Some(&Alignment::Center) => buf.push_str(" align=\"center\""),
                     Some(&Alignment::Right) => buf.push_str(" align=\"right\""),
@@ -311,17 +303,18 @@ where
             }
             Tag::TableHead => {
                 buf.push_str("</tr></thead><tbody>\n");
-                self.table_state = TableState::Body;
+                self.table.set_table_state(TableState::Body);
             }
             Tag::TableRow => {
                 buf.push_str("</tr>\n");
             }
             Tag::TableCell => {
-                match self.table_state {
+                match self.table.table_state() {
                     TableState::Head => buf.push_str("</th>"),
                     TableState::Body => buf.push_str("</td>"),
                 }
-                self.table_cell_index += 1;
+                self.table.inc_index();
+                // self.table_cell_index += 1;
             }
             Tag::BlockQuote => buf.push_str(&RESET_COLOR),
             Tag::CodeBlock(_) => {
@@ -346,7 +339,10 @@ where
                 buf.push_str(&l);
             }
             Tag::Image(_, _) => (), // shouldn't happen, handled in start
-            Tag::FootnoteDefinition(_) => fresh_line(buf),
+            Tag::FootnoteDefinition(_) => {
+                fresh_line(buf);
+                println!("{:?}", self.table);
+            }
         }
     }
 
@@ -382,7 +378,8 @@ where
                 buf.push_str(&format!("  {}", text));
             }
         } else if self.in_table {
-            self.table.push_back(text);
+            //println!("{:?} {:?}", self.table.index(), text);
+            self.table.push(&text);
         } else {
             buf.push_str(&text);
         }
