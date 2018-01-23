@@ -42,7 +42,38 @@ pub trait Table: TableFns {
     const OUTER_TOP_LEFT: char;
     const OUTER_TOP_RIGHT: char;
     fn new() -> Self;
-    fn draw(&mut self) -> Self::Output;
+    fn draw(&mut self) -> Self::Output {
+        write!(
+            f,
+            "{}{}",
+            AsciiTable::OUTER_TOP_LEFT,
+            AsciiTable::OUTER_TOP_HORIZONTAL
+        );
+        let j = 0;
+        for i in 0..self.table_cell_index {
+            if j == 0 {}
+        }
+        // let total_len: usize = self.table[0..self.table_cell_index]
+        //     .iter()
+        //     .map(|x| x.len())
+        //     .sum();
+        write!(
+            f,
+            "{}{}{}",
+            AsciiTable::OUTER_TOP_HORIZONTAL,
+            AsciiTable::OUTER_TOP_INTERSECT,
+            AsciiTable::OUTER_TOP_HORIZONTAL
+        );
+        write!(
+            f,
+            "{}{}",
+            AsciiTable::OUTER_TOP_HORIZONTAL,
+            AsciiTable::OUTER_TOP_RIGHT
+        );
+        for row in 0..(self.table.len() / self.table_cell_index) {
+            // write!(f, "",)
+        }
+    }
     fn push(&mut self, item: &str);
 }
 
@@ -151,37 +182,5 @@ impl Table for AsciiTable {
         } else {
             self.table[self.cur].push_str(&item);
         }
-    }
-}
-
-impl Display for AsciiTable {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}{}",
-            AsciiTable::OUTER_TOP_LEFT,
-            AsciiTable::OUTER_TOP_HORIZONTAL
-        );
-        let total_len: usize = self.table[0..self.table_cell_index]
-            .iter()
-            .map(|x| x.len())
-            .sum();
-        write!(
-            f,
-            "{}{}{}",
-            AsciiTable::OUTER_TOP_HORIZONTAL,
-            AsciiTable::OUTER_TOP_INTERSECT,
-            AsciiTable::OUTER_TOP_HORIZONTAL
-        );
-        write!(
-            f,
-            "{}{}",
-            AsciiTable::OUTER_TOP_HORIZONTAL,
-            AsciiTable::OUTER_TOP_RIGHT
-        );
-        for row in 0..(self.table.len() / self.table_cell_index) {
-            // write!(f, "",)
-        }
-        Ok(())
     }
 }
