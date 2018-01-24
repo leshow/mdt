@@ -11,7 +11,6 @@ pub trait TableFns {
 }
 
 pub trait Table: TableFns {
-    type Output: Write;
     const F_INNER_HORIZONTAL: char;
     const F_INNER_INTERSECT: char;
     const F_INNER_VERTICAL: char;
@@ -42,7 +41,7 @@ pub trait Table: TableFns {
     const OUTER_TOP_LEFT: char;
     const OUTER_TOP_RIGHT: char;
     fn new() -> Self;
-    fn draw(&mut self) -> Self::Output; 
+    fn draw(&mut self, write: impl Write); 
         // write!(
         //     f,
         //     "{}{}",
@@ -132,7 +131,6 @@ macro_rules! impl_table {
 impl_table!(AsciiTable);
 
 impl Table for AsciiTable {
-    type Output = String;
 
     const F_INNER_HORIZONTAL: char = '-';
     const F_INNER_INTERSECT: char = '+';
@@ -164,8 +162,7 @@ impl Table for AsciiTable {
     const OUTER_TOP_LEFT: char = '+';
     const OUTER_TOP_RIGHT: char = '+';
 
-    fn draw(&mut self) -> Self::Output {
-        String::new()
+    fn draw(&mut self, writer: impl Write) {
     }
 
     fn new() -> Self {
