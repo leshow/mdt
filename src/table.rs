@@ -1,6 +1,5 @@
 // use pulldown_cmark::Alignment;
-use std::fmt::{self, Display};
-use std::io::Write;
+use std::fmt::{self, Write, Display};
 
 pub trait TableFns {
     fn set_table_state(&mut self, state: TableState);
@@ -43,7 +42,7 @@ pub trait Table: TableFns {
     const OUTER_TOP_LEFT: char;
     const OUTER_TOP_RIGHT: char;
     fn new() -> Self;
-    fn draw(&mut self) -> Self::Output {
+    fn draw(&mut self) -> Self::Output; 
         // write!(
         //     f,
         //     "{}{}",
@@ -74,8 +73,6 @@ pub trait Table: TableFns {
         // for row in 0..(self.table.len() / self.table_cell_index) {
         //     // write!(f, "",)
         // }
-        return String::new();
-    }
     fn push(&mut self, item: &str);
 }
 
@@ -168,7 +165,7 @@ impl Table for AsciiTable {
     const OUTER_TOP_RIGHT: char = '+';
 
     fn draw(&mut self) -> Self::Output {
-        // format!("{}", self)
+        String::new()
     }
 
     fn new() -> Self {

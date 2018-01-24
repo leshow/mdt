@@ -3,8 +3,7 @@ use escape::{escape_href, escape_html};
 use pulldown_cmark::{Alignment, Event, Tag};
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::fmt::{self, Formatter};
-use std::fmt::Debug;
+use std::fmt::{self, Formatter, Debug, Write};
 use std::io::{self, Read};
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{Style, ThemeSet};
@@ -72,7 +71,7 @@ impl<'a, I, T, O> MDParser<'a, I> for Terminal<'a, T>
 where
     I: Iterator<Item = Event<'a>>,
     T: Table<Output = O> + Debug,
-    O: From<Cow<'a, str>> + io::Write,
+    O: From<Cow<'a, str>> + fmt::Write,
 {
     type Output = String;
     fn parse(&mut self, iter: I) -> Self::Output {
@@ -118,7 +117,7 @@ where
 impl<'a, T, O> Terminal<'a, T>
 where
     T: Table<Output = O> + Debug,
-    O: From<Cow<'a, str>> + io::Write,
+    O: From<Cow<'a, str>> + fmt::Write,
 {
     pub fn new(term_size: (u16, u16), truecolor: bool) -> Terminal<'a, T> {
         Terminal {
