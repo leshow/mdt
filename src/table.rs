@@ -1,5 +1,5 @@
 // use pulldown_cmark::Alignment;
-use std::fmt::{self, Write, Display};
+use std::fmt::{self, Display, Write};
 
 pub trait TableFns {
     fn set_table_state(&mut self, state: TableState);
@@ -41,37 +41,8 @@ pub trait Table: TableFns {
     const OUTER_TOP_LEFT: char;
     const OUTER_TOP_RIGHT: char;
     fn new() -> Self;
-    fn draw(&mut self, write: impl Write); 
-        // write!(
-        //     f,
-        //     "{}{}",
-        //     AsciiTable::OUTER_TOP_LEFT,
-        //     AsciiTable::OUTER_TOP_HORIZONTAL
-        // );
-        // let j = 0;
-        // for i in 0..self.table_cell_index {
-        //     if j == 0 {}
-        // }
-        // // let total_len: usize = self.table[0..self.table_cell_index]
-        // //     .iter()
-        // //     .map(|x| x.len())
-        // //     .sum();
-        // write!(
-        //     f,
-        //     "{}{}{}",
-        //     AsciiTable::OUTER_TOP_HORIZONTAL,
-        //     AsciiTable::OUTER_TOP_INTERSECT,
-        //     AsciiTable::OUTER_TOP_HORIZONTAL
-        // );
-        // write!(
-        //     f,
-        //     "{}{}",
-        //     AsciiTable::OUTER_TOP_HORIZONTAL,
-        //     AsciiTable::OUTER_TOP_RIGHT
-        // );
-        // for row in 0..(self.table.len() / self.table_cell_index) {
-        //     // write!(f, "",)
-        // }
+    fn draw(&mut self, write: &mut impl Write);
+
     fn push(&mut self, item: &str);
 }
 
@@ -131,7 +102,6 @@ macro_rules! impl_table {
 impl_table!(AsciiTable);
 
 impl Table for AsciiTable {
-
     const F_INNER_HORIZONTAL: char = '-';
     const F_INNER_INTERSECT: char = '+';
     const F_INNER_VERTICAL: char = '|';
@@ -162,7 +132,37 @@ impl Table for AsciiTable {
     const OUTER_TOP_LEFT: char = '+';
     const OUTER_TOP_RIGHT: char = '+';
 
-    fn draw(&mut self, writer: impl Write) {
+    fn draw(&mut self, write: &mut impl Write) {
+        // write!(
+        //     f,
+        //     "{}{}",
+        //     AsciiTable::OUTER_TOP_LEFT,
+        //     AsciiTable::OUTER_TOP_HORIZONTAL
+        // );
+        // let j = 0;
+        // for i in 0..self.table_cell_index {
+        //     if j == 0 {}
+        // }
+        // // let total_len: usize = self.table[0..self.table_cell_index]
+        // //     .iter()
+        // //     .map(|x| x.len())
+        // //     .sum();
+        // write!(
+        //     f,
+        //     "{}{}{}",
+        //     AsciiTable::OUTER_TOP_HORIZONTAL,
+        //     AsciiTable::OUTER_TOP_INTERSECT,
+        //     AsciiTable::OUTER_TOP_HORIZONTAL
+        // );
+        // write!(
+        //     f,
+        //     "{}{}",
+        //     AsciiTable::OUTER_TOP_HORIZONTAL,
+        //     AsciiTable::OUTER_TOP_RIGHT
+        // );
+        // for row in 0..(self.table.len() / self.table_cell_index) {
+        //     // write!(f, "",)
+        // }
     }
 
     fn new() -> Self {

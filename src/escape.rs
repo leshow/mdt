@@ -20,6 +20,7 @@
 
 //! Utility functions for HTML escaping
 
+use std::fmt::Write;
 use std::str::from_utf8;
 
 static HREF_SAFE: [u8; 128] = [
@@ -76,7 +77,7 @@ static HTML_ESCAPE_TABLE: [u8; 256] = [
 
 static HTML_ESCAPES: [&'static str; 6] = ["", "&quot;", "&amp;", "&#47;", "&lt;", "&gt;"];
 
-pub fn escape_html(ob: &mut String, s: &str, secure: bool) {
+pub fn escape_html<W: Write>(ob: &mut W, s: &str, secure: bool) {
     let size = s.len();
     let bytes = s.as_bytes();
     let mut mark = 0;
@@ -94,11 +95,11 @@ pub fn escape_html(ob: &mut String, s: &str, secure: bool) {
         let c = bytes[i];
         let escape = HTML_ESCAPE_TABLE[c as usize];
         if escape != 0 && (secure || c != b'/') {
-            ob.push_str(&s[mark..i]);
-            ob.push_str(HTML_ESCAPES[escape as usize]);
+            write!(ob, "{}", &s[mark..i]);
+            write!(ob, "{}", HTML_ESCAPES[escape as usize]);
             mark = i + 1; // all escaped characters are ASCII
         }
         i += 1;
     }
-    ob.push_str(&s[mark..]);
+    write!(ob, "{}", &s[mark..]);
 }
