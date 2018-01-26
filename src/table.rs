@@ -1,5 +1,6 @@
 // use pulldown_cmark::Alignment;
-use std::fmt::{self, Display, Write};
+use std::fmt::{self, Display};
+use std::io::Write;
 
 pub trait TableFns {
     fn set_table_state(&mut self, state: TableState);

@@ -3,8 +3,8 @@ use escape::{escape_href, escape_html};
 use pulldown_cmark::{Alignment, Event, Tag};
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter, Write};
-use std::io::{self, Read};
+use std::fmt::{self, Debug, Formatter};
+use std::io::Write;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{Style, ThemeSet};
 use syntect::parsing::SyntaxSet;
@@ -307,54 +307,64 @@ where
         }
     }
 
-    fn end_tag(&mut self, tag: Tag<'a>, buf: &mut String) {
+    fn end_tag<W: Write>(&mut self, tag: Tag<'a>, buf: &mut W) {
         match tag {
             Tag::Paragraph => fresh_line(buf),
             Tag::Rule => (),
             Tag::Header(_) => {
                 fresh_line(buf);
-                buf.push_str(&RESET_COLOR);
+                write!(buf, "{}", *RESET_COLOR);
             }
             Tag::Table(_) => {
                 self.in_table = false;
-                buf.push_str("</tbody></table>\n");
+                write!(buf, "</tbody></table>\n");
             }
             Tag::TableHead => {
-                buf.push_str("</tr></thead><tbody>\n");
+                write!(buf, "</tr></thead><tbody>\n");
                 self.table.set_table_state(TableState::Body);
             }
             Tag::TableRow => {
-                buf.push_str("</tr>\n");
+                write!(buf, "</tr>\n");
             }
             Tag::TableCell => {
                 match self.table.table_state() {
-                    TableState::Head => buf.push_str("</th>"),
-                    TableState::Body => buf.push_str("</td>"),
+                    TableState::Head => {
+                        write!(buf, "</th>");
+                    }
+                    TableState::Body => {
+                        write!(buf, "</td>");
+                    }
                 }
                 self.table.inc_index();
                 // self.table_cell_index += 1;
             }
-            Tag::BlockQuote => buf.push_str(&RESET_COLOR),
+            Tag::BlockQuote => {
+                write!(buf, "{}", *RESET_COLOR);
+            }
             Tag::CodeBlock(_) => {
                 self.in_code = false;
                 self.write_code(buf);
-                buf.push_str(&RESET_COLOR);
+                write!(buf, "{}", *RESET_COLOR);
                 fresh_line(buf);
             }
             Tag::List(Some(_)) => fresh_line(buf), // ol
             Tag::List(None) => fresh_line(buf),
             Tag::Item => (),
-            Tag::Emphasis => buf.push_str(&RESET_STYLE),
-            Tag::Strong => buf.push_str(&RESET_STYLE),
+            Tag::Emphasis => {
+                write!(buf, "{}", *RESET_STYLE);
+            }
+            Tag::Strong => {
+                write!(buf, "{}", *RESET_STYLE);
+            }
             Tag::Code => {
-                buf.push_str("`");
-                buf.push_str(&RESET_STYLE);
+                write!(buf, "`");
+                write!(buf, "{}", *RESET_STYLE);
             }
             Tag::Link(_, _) => {
-                buf.push_str(&RESET_STYLE);
+                write!(buf, "{}", *RESET_STYLE);
                 let num = self.links.len().to_string();
                 let l = String::from("[") + &num + "]";
-                buf.push_str(&l);
+                write!(buf, "{}", &l);
             }
             Tag::Image(_, _) => (), // shouldn't happen, handled in start
             Tag::FootnoteDefinition(_) => {

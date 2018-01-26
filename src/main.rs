@@ -13,8 +13,8 @@ use getopts::Options as GetOpts;
 use pulldown_cmark::{Event, Options, Parser, OPTION_ENABLE_FOOTNOTES, OPTION_ENABLE_TABLES};
 use std::env;
 use std::error::Error;
-use std::fmt;
-use std::io::{self, Read, Write};
+use std::fmt::{self, Write};
+use std::io::{self, Read};
 
 mod escape;
 pub mod table;
@@ -65,9 +65,9 @@ fn run() -> Result<(), MarkdownError> {
     let term_size = termion::terminal_size()?;
 
     let mut terminal = TermAscii::new(term_size, truecolor);
-    let out = terminal.parse(p);
-    io::stdout().write_all(out.as_bytes())?;
-    io::stdout().flush()?;
+    terminal.parse(p, &mut io::stdout());
+    // io::stdout().write_all(out.as_bytes())?;
+    // io::stdout().flush()?;
 
     Ok(())
 }

@@ -20,7 +20,7 @@
 
 //! Utility functions for HTML escaping
 
-use std::fmt::Write;
+use std::io::Write;
 use std::str::from_utf8;
 
 static HREF_SAFE: [u8; 128] = [
@@ -32,7 +32,7 @@ static HREF_SAFE: [u8; 128] = [
 
 static HEX_CHARS: &'static [u8] = b"0123456789ABCDEF";
 
-pub fn escape_href(ob: &mut String, s: &str) {
+pub fn escape_href<W: Write>(ob: &mut W, s: &str) {
     let mut mark = 0;
     for i in 0..s.len() {
         let c = s.as_bytes()[i];
