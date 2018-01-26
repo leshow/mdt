@@ -72,56 +72,47 @@ impl<'a, I, T, W> MDParser<'a, I, W> for Terminal<'a, T>
 where
     I: Iterator<Item = Event<'a>>,
     T: Table + Debug,
-    W: Write, // O: From<Cow<'a, str>> + fmt::Write
+    W: Write,
 {
     // type Output = String;
     fn parse(&mut self, iter: I, w: &mut W) -> Result<()> {
-        let mut buf = String::new();
         let mut numbers = HashMap::new();
-
-        {
-            // let mbuf = &mut buf;
-            for event in iter {
-                match event {
-                    Event::Start(tag) => {
-                        self.increment();
-                        self.start_tag(tag, w, &mut numbers)?;
-                    }
-                    Event::End(tag) => {
-                        self.decrement();
-                        self.end_tag(tag, w)?;
-                    }
-                    Event::Text(text) => self.write_buf(w, text)?,
-                    Event::SoftBreak => self.soft_break(),
-                    Event::HardBreak => self.hard_break(),
-                    Event::FootnoteReference(name) => self.write_buf(w, name)?,
-                    _ => panic!("html and inline html converted to text, this is unreachable"),
+        // let mbuf = &mut buf;
+        for event in iter {
+            match event {
+                Event::Start(tag) => {
+                    self.increment();
+                    self.start_tag(tag, w, &mut numbers)?;
                 }
+                Event::End(tag) => {
+                    self.decrement();
+                    self.end_tag(tag, w)?;
+                }
+                Event::Text(text) => self.write_buf(w, text)?,
+                Event::SoftBreak => self.soft_break(),
+                Event::HardBreak => self.hard_break(),
+                Event::FootnoteReference(name) => self.write_buf(w, name)?,
+                _ => panic!("html and inline html converted to text, this is unreachable"),
             }
         }
 
         // write links as footnotes
-        let mut links = String::new();
+
         for (i, &(ref dest, ref title)) in self.links.iter().enumerate() {
             let i = i + 1;
             if !title.is_empty() {
-                links.push_str(&format!("[{}] {}: {}\n", i, title, dest));
+                write!(w, "[{}] {}: {}\n", i, title, dest).unwrap();
             } else {
-                links.push_str(&format!("[{}] {}\n", i, dest));
+                write!(w, "[{}] {}\n", i, dest).unwrap();
             }
         }
-        //buf.push_str(&links);
-        write!(buf, "{}", links).unwrap();
-
         Ok(())
-        // buf
     }
 }
 
 impl<'a, T> Terminal<'a, T>
 where
     T: Table + Debug,
-    // O: From<Cow<'a, str>> + fmt::Write,
 {
     pub fn new(term_size: (u16, u16), truecolor: bool) -> Terminal<'a, T> {
         Terminal {
@@ -373,7 +364,7 @@ where
             Tag::Image(_, _) => (), // shouldn't happen, handled in start
             Tag::FootnoteDefinition(_) => {
                 fresh_line(buf)?;
-                println!("{:?}", self.table);
+                // write!(buf, "{:?}", self.table);
             }
         }
         Ok(())
