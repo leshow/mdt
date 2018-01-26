@@ -41,27 +41,27 @@ pub fn escape_href<W: Write>(ob: &mut W, s: &str) {
 
             // write partial substring up to mark
             if mark < i {
-                ob.push_str(&s[mark..i]);
+                write!(ob, "{}", &s[mark..i]);
             }
             match c {
                 b'&' => {
-                    ob.push_str("&amp;");
+                    write!(ob, "&amp;");
                 }
                 b'\'' => {
-                    ob.push_str("&#x27;");
+                    write!(ob, "&#x27;");
                 }
                 _ => {
                     let mut buf = [0u8; 3];
                     buf[0] = b'%';
                     buf[1] = HEX_CHARS[((c as usize) >> 4) & 0xF];
                     buf[2] = HEX_CHARS[(c as usize) & 0xF];
-                    ob.push_str(from_utf8(&buf).unwrap());
+                    write!(ob, "{}", from_utf8(&buf).unwrap());
                 }
             }
             mark = i + 1; // all escaped characters are ASCII
         }
     }
-    ob.push_str(&s[mark..]);
+    write!(ob, "{}", &s[mark..]);
 }
 
 static HTML_ESCAPE_TABLE: [u8; 256] = [

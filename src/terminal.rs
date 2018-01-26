@@ -378,24 +378,24 @@ where
 
     fn hard_break(&mut self) {}
 
-    fn write_code(&mut self, buf: &mut String) {
+    fn write_code<W: Write>(&mut self, buf: &mut W) {
         let ts = ThemeSet::load_defaults();
         let ps = SyntaxSet::load_defaults_newlines();
+
         let syntax = if let Some(ref lang) = self.lang {
             ps.find_syntax_by_token(lang)
         } else {
             ps.find_syntax_by_first_line(&self.code)
         }.unwrap_or_else(|| ps.find_syntax_plain_text());
+
         let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
         for line in self.code.lines() {
             let regions: Vec<(Style, &str)> = h.highlight(&line);
             let highlighted = format!("  {}", as_24_bit_terminal_escaped(&regions[..], false));
-            buf.push_str(&highlighted);
-            buf.push_str("\n");
+            write!(buf, "{}\n", &highlighted);
         }
         // Clear the formatting
-        buf.push_str("\x1b[0m");
-        // self.code = String::new();
+        write!(buf, "\x1b[0m");
     }
 
     fn write_buf<W: Write>(&mut self, buf: &mut W, text: Cow<'a, str>) {
