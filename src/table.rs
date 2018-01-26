@@ -1,6 +1,8 @@
 // use pulldown_cmark::Alignment;
+use MDResult;
 use std::fmt::{self, Display};
 use std::io::Write;
+use std::iter;
 
 pub trait TableFns {
     fn set_table_state(&mut self, state: TableState);
@@ -42,7 +44,7 @@ pub trait Table: TableFns {
     const OUTER_TOP_LEFT: char;
     const OUTER_TOP_RIGHT: char;
     fn new() -> Self;
-    fn draw(&mut self, write: &mut impl Write);
+    fn draw(&mut self, write: &mut impl Write) -> MDResult<()>;
 
     fn push(&mut self, item: &str);
 }
@@ -133,37 +135,48 @@ impl Table for AsciiTable {
     const OUTER_TOP_LEFT: char = '+';
     const OUTER_TOP_RIGHT: char = '+';
 
-    fn draw(&mut self, write: &mut impl Write) {
+    fn draw(&mut self, w: &mut impl Write) -> MDResult<()> {
+        write!(
+            w,
+            "{}{}",
+            AsciiTable::OUTER_TOP_LEFT,
+            AsciiTable::OUTER_TOP_HORIZONTAL
+        )?;
+        let width: usize = self.table[0..self.table_cell_index]
+            .iter()
+            .map(|x| x.len())
+            .sum();
+
+        let row = 0;
+        for col in 0..self.table_cell_index {
+            if row == 0 {
+                // write!(
+                //     w,
+                //     "{}",
+                //     iter::repeat(AsciiTable::OUTER_TOP_HORIZONTAL)
+                //         .take(width)
+                //         .collect::<String>()
+                // )?;
+                write!(w, "{:-^1$}", AsciiTable::OUTER_TOP_INTERSECT, width)?;
+            }
+        }
+
         // write!(
-        //     f,
-        //     "{}{}",
-        //     AsciiTable::OUTER_TOP_LEFT,
-        //     AsciiTable::OUTER_TOP_HORIZONTAL
-        // );
-        // let j = 0;
-        // for i in 0..self.table_cell_index {
-        //     if j == 0 {}
-        // }
-        // // let total_len: usize = self.table[0..self.table_cell_index]
-        // //     .iter()
-        // //     .map(|x| x.len())
-        // //     .sum();
-        // write!(
-        //     f,
+        //     w,
         //     "{}{}{}",
         //     AsciiTable::OUTER_TOP_HORIZONTAL,
         //     AsciiTable::OUTER_TOP_INTERSECT,
         //     AsciiTable::OUTER_TOP_HORIZONTAL
-        // );
-        // write!(
-        //     f,
-        //     "{}{}",
-        //     AsciiTable::OUTER_TOP_HORIZONTAL,
-        //     AsciiTable::OUTER_TOP_RIGHT
-        // );
-        // for row in 0..(self.table.len() / self.table_cell_index) {
-        //     // write!(f, "",)
-        // }
+        // )?;
+
+        write!(
+            w,
+            "{}{}",
+            AsciiTable::OUTER_TOP_HORIZONTAL,
+            AsciiTable::OUTER_TOP_RIGHT
+        )?;
+
+        Ok(())
     }
 
     fn new() -> Self {

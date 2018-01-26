@@ -44,6 +44,10 @@ pub struct Terminal<'a, T> {
     lang: Option<String>,
     dontskip: bool,
 }
+// Idea: instead of state variables like 'in_code', Terminal could hold
+// a CodeContext { lang, code } and an active context, we populate the active Context
+// as start/write_buf events happen, when end_tag hits, we should have a fully populated
+// CodeContext or what have you, and we must only write! it.
 
 impl<'a, T> Default for Terminal<'a, T>
 where
@@ -392,6 +396,7 @@ where
         }
         // Clear the formatting
         write!(buf, "\x1b[0m")?;
+        self.code = String::new();
         Ok(())
     }
 

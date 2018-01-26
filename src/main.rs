@@ -79,10 +79,12 @@ fn print_usage(program: &str, opts: GetOpts) {
 
 // Error
 #[derive(Debug)]
-pub(crate) enum MarkdownError {
+pub enum MarkdownError {
     Io(io::Error),
     Args(getopts::Fail),
 }
+
+pub type MDResult<T> = Result<T, MarkdownError>;
 
 impl From<io::Error> for MarkdownError {
     fn from(e: io::Error) -> MarkdownError {
