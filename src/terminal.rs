@@ -4,7 +4,8 @@ use pulldown_cmark::{Alignment, Event, Tag};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Formatter};
-use std::io::Write;
+use std::fmt::Write as FWrite;
+use std::io::{Result, Write};
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{Style, ThemeSet};
 use syntect::parsing::SyntaxSet;
@@ -25,7 +26,7 @@ where
     I: Iterator<Item = Event<'a>>,
     W: Write,
 {
-    fn parse(&mut self, iter: I, w: &mut W);
+    fn parse(&mut self, iter: I, w: &mut W) -> Result<()>;
 }
 
 pub struct Terminal<'a, T> {
@@ -74,7 +75,7 @@ where
     W: Write, // O: From<Cow<'a, str>> + fmt::Write
 {
     // type Output = String;
-    fn parse(&mut self, iter: I, w: &mut W) {
+    fn parse(&mut self, iter: I, w: &mut W) -> Result<()> {
         let mut buf = String::new();
         let mut numbers = HashMap::new();
 
@@ -84,16 +85,16 @@ where
                 match event {
                     Event::Start(tag) => {
                         self.increment();
-                        self.start_tag(tag, w, &mut numbers);
+                        self.start_tag(tag, w, &mut numbers)?;
                     }
                     Event::End(tag) => {
                         self.decrement();
-                        self.end_tag(tag, w);
+                        self.end_tag(tag, w)?;
                     }
-                    Event::Text(text) => self.write_buf(w, text),
+                    Event::Text(text) => self.write_buf(w, text)?,
                     Event::SoftBreak => self.soft_break(),
                     Event::HardBreak => self.hard_break(),
-                    Event::FootnoteReference(name) => self.write_buf(w, name),
+                    Event::FootnoteReference(name) => self.write_buf(w, name)?,
                     _ => panic!("html and inline html converted to text, this is unreachable"),
                 }
             }
@@ -110,7 +111,9 @@ where
             }
         }
         //buf.push_str(&links);
-        write!(buf, "{}", &links);
+        write!(buf, "{}", links).unwrap();
+
+        Ok(())
         // buf
     }
 }
@@ -149,21 +152,21 @@ where
         tag: Tag<'a>,
         buf: &mut W,
         numbers: &mut HashMap<Cow<'a, str>, usize>,
-    ) {
+    ) -> Result<()> {
         match tag {
             Tag::Paragraph => {
                 if !self.dontskip {
-                    fresh_line(buf);
+                    fresh_line(buf)?;
                 }
                 self.dontskip = false;
             }
             Tag::Rule => {
-                fresh_line(buf);
+                fresh_line(buf)?;
                 // buf.push_str(&"-".repeat(self.width()));
-                write!(buf, "{}", &"-".repeat(self.width()));
+                write!(buf, "{}", &"-".repeat(self.width()))?;
             }
             Tag::Header(level) => {
-                fresh_line(buf);
+                fresh_line(buf)?;
                 // buf.push_str(&format!(
                 //     "{}{} {} ",
                 //     color::Fg(color::Yellow),
@@ -176,29 +179,29 @@ where
                     color::Fg(color::Yellow),
                     "#".repeat(level as usize),
                     color::Fg(color::Red)
-                );
+                )?;
             }
             Tag::Table(alignments) => {
                 self.table_alignments = alignments;
                 self.in_table = true;
                 // buf.push_str("<table>");
-                fresh_line(buf);
+                fresh_line(buf)?;
             }
             Tag::TableHead => {
                 // self.table_state = TableState::Head;
                 self.table.set_table_state(TableState::Head);
                 // buf.push_str("<thead><tr>");
-                write!(buf, "<thead><tr>");
+                write!(buf, "<thead><tr>")?;
             }
             Tag::TableRow => {
                 self.table.set_index(0);
                 // buf.push_str("<tr>");
-                write!(buf, "<tr>");
+                write!(buf, "<tr>")?;
             }
             Tag::TableCell => {
                 match self.table.table_state() {
-                    TableState::Head => write!(buf, "<tr"),
-                    TableState::Body => write!(buf, "<td"),
+                    TableState::Head => write!(buf, "<tr")?,
+                    TableState::Body => write!(buf, "<td")?,
                 };
 
                 write!(
@@ -210,21 +213,21 @@ where
                         Some(&Alignment::Right) => " align=\"right\"",
                         _ => "",
                     }
-                );
-                write!(buf, ">");
+                )?;
+                write!(buf, ">")?;
             }
             Tag::BlockQuote => {
-                fresh_line(buf);
+                fresh_line(buf)?;
                 write!(
                     buf,
                     "{}{}",
                     color::Fg(color::Green),
                     "   ".repeat(self.indent_lvl) + "> "
-                );
+                )?;
                 self.dontskip = true;
             }
             Tag::CodeBlock(info) => {
-                fresh_line(buf);
+                fresh_line(buf)?;
                 // let lang = info.split(' ').next().unwrap();
                 self.lang = info.split(' ').next().map(String::from);
                 self.in_code = true;
@@ -239,13 +242,13 @@ where
                 // }
             }
             Tag::List(Some(1)) => {
-                fresh_line(buf);
+                fresh_line(buf)?;
                 // <ol>
                 self.ordered = true;
                 self.items = 0;
             }
             Tag::List(Some(start)) => {
-                fresh_line(buf);
+                fresh_line(buf)?;
                 // <ol start=start>
                 self.ordered = true;
                 self.items = start;
@@ -253,45 +256,45 @@ where
             }
             Tag::List(None) => {
                 // UL
-                fresh_line(buf);
+                fresh_line(buf)?;
                 self.ordered = false;
             }
             Tag::Item => {
-                fresh_line(buf);
+                fresh_line(buf)?;
                 if self.ordered {
                     self.inc_li();
-                    write!(buf, " {}", &(self.items.to_string() + ". "));
+                    write!(buf, " {}", &(self.items.to_string() + ". "))?;
                 } else {
-                    write!(buf, "{} * ", color::Fg(color::Red));
-                    write!(buf, "{}", *RESET_COLOR);
+                    write!(buf, "{} * ", color::Fg(color::Red))?;
+                    write!(buf, "{}", *RESET_COLOR)?;
                 }
             }
             Tag::Emphasis => {
-                write!(buf, "{}", style::Italic);
+                write!(buf, "{}", style::Italic)?;
             }
             Tag::Strong => {
-                write!(buf, "{}", style::Bold);
+                write!(buf, "{}", style::Bold)?;
             }
             Tag::Code => {
-                write!(buf, "`{}", style::Italic);
+                write!(buf, "`{}", style::Italic)?;
             }
             Tag::Link(dest, title) => {
-                write!(buf, "{}", style::Underline);
+                write!(buf, "{}", style::Underline)?;
                 self.links.push((dest, title));
             }
             Tag::Image(dest, title) => {
-                write!(buf, "<img src=\"");
-                escape_href(buf, &dest);
-                write!(buf, "\" alt=\"");
+                write!(buf, "<img src=\"")?;
+                escape_href(buf, &dest)?;
+                write!(buf, "\" alt=\"")?;
                 //self.raw_text(numbers);
                 if !title.is_empty() {
-                    write!(buf, "\" title=\"");
-                    escape_html(buf, &title, false);
+                    write!(buf, "\" title=\"")?;
+                    escape_html(buf, &title, false)?;
                 }
-                write!(buf, "\" />");
+                write!(buf, "\" />")?;
             }
             Tag::FootnoteDefinition(name) => {
-                fresh_line(buf);
+                fresh_line(buf)?;
                 let len = numbers.len() + 1;
 
                 // buf.push_str("<div class=\"footnote-definition\" id=\"");
@@ -301,84 +304,86 @@ where
                 let number = numbers.entry(name).or_insert(len);
                 // buf.push_str(&*format!("{}", number));
 
-                write!(buf, "[^{}] ", number.to_string());
+                write!(buf, "[^{}] ", number.to_string())?;
                 self.dontskip = true;
             }
         }
+        Ok(())
     }
 
-    fn end_tag<W: Write>(&mut self, tag: Tag<'a>, buf: &mut W) {
+    fn end_tag<W: Write>(&mut self, tag: Tag<'a>, buf: &mut W) -> Result<()> {
         match tag {
-            Tag::Paragraph => fresh_line(buf),
+            Tag::Paragraph => fresh_line(buf)?,
             Tag::Rule => (),
             Tag::Header(_) => {
-                fresh_line(buf);
-                write!(buf, "{}", *RESET_COLOR);
+                fresh_line(buf)?;
+                write!(buf, "{}", *RESET_COLOR)?;
             }
             Tag::Table(_) => {
                 self.in_table = false;
-                write!(buf, "</tbody></table>\n");
+                write!(buf, "</tbody></table>\n")?;
             }
             Tag::TableHead => {
-                write!(buf, "</tr></thead><tbody>\n");
+                write!(buf, "</tr></thead><tbody>\n")?;
                 self.table.set_table_state(TableState::Body);
             }
             Tag::TableRow => {
-                write!(buf, "</tr>\n");
+                write!(buf, "</tr>\n")?;
             }
             Tag::TableCell => {
                 match self.table.table_state() {
                     TableState::Head => {
-                        write!(buf, "</th>");
+                        write!(buf, "</th>")?;
                     }
                     TableState::Body => {
-                        write!(buf, "</td>");
+                        write!(buf, "</td>")?;
                     }
                 }
                 self.table.inc_index();
                 // self.table_cell_index += 1;
             }
             Tag::BlockQuote => {
-                write!(buf, "{}", *RESET_COLOR);
+                write!(buf, "{}", *RESET_COLOR)?;
             }
             Tag::CodeBlock(_) => {
                 self.in_code = false;
-                self.write_code(buf);
-                write!(buf, "{}", *RESET_COLOR);
-                fresh_line(buf);
+                self.write_code(buf)?;
+                write!(buf, "{}", *RESET_COLOR)?;
+                fresh_line(buf)?;
             }
-            Tag::List(Some(_)) => fresh_line(buf), // ol
-            Tag::List(None) => fresh_line(buf),
+            Tag::List(Some(_)) => fresh_line(buf)?, // ol
+            Tag::List(None) => fresh_line(buf)?,
             Tag::Item => (),
             Tag::Emphasis => {
-                write!(buf, "{}", *RESET_STYLE);
+                write!(buf, "{}", *RESET_STYLE)?;
             }
             Tag::Strong => {
-                write!(buf, "{}", *RESET_STYLE);
+                write!(buf, "{}", *RESET_STYLE)?;
             }
             Tag::Code => {
-                write!(buf, "`");
-                write!(buf, "{}", *RESET_STYLE);
+                write!(buf, "`")?;
+                write!(buf, "{}", *RESET_STYLE)?;
             }
             Tag::Link(_, _) => {
-                write!(buf, "{}", *RESET_STYLE);
+                write!(buf, "{}", *RESET_STYLE)?;
                 let num = self.links.len().to_string();
                 let l = String::from("[") + &num + "]";
-                write!(buf, "{}", &l);
+                write!(buf, "{}", &l)?;
             }
             Tag::Image(_, _) => (), // shouldn't happen, handled in start
             Tag::FootnoteDefinition(_) => {
-                fresh_line(buf);
+                fresh_line(buf)?;
                 println!("{:?}", self.table);
             }
         }
+        Ok(())
     }
 
     fn soft_break(&mut self) {}
 
     fn hard_break(&mut self) {}
 
-    fn write_code<W: Write>(&mut self, buf: &mut W) {
+    fn write_code<W: Write>(&mut self, buf: &mut W) -> Result<()> {
         let ts = ThemeSet::load_defaults();
         let ps = SyntaxSet::load_defaults_newlines();
 
@@ -392,53 +397,41 @@ where
         for line in self.code.lines() {
             let regions: Vec<(Style, &str)> = h.highlight(&line);
             let highlighted = format!("  {}", as_24_bit_terminal_escaped(&regions[..], false));
-            write!(buf, "{}\n", &highlighted);
+            write!(buf, "{}\n", &highlighted)?;
         }
         // Clear the formatting
-        write!(buf, "\x1b[0m");
+        write!(buf, "\x1b[0m")?;
+        Ok(())
     }
 
-    fn write_buf<W: Write>(&mut self, buf: &mut W, text: Cow<'a, str>) {
+    fn write_buf<W: Write>(&mut self, buf: &mut W, text: Cow<'a, str>) -> Result<()> {
         if self.in_code {
             if self.truecolor {
                 self.code.push_str(&text);
             } else {
                 // buf.push_str(&format!("  {}", text));
-                write!(buf, "   {}", text);
+                write!(buf, "   {}", text)?;
             }
         } else if self.in_table {
             //println!("{:?} {:?}", self.table.index(), text);
             self.table.push(&text);
         } else {
             // buf.push_str(&text);
-            write!(buf, "{}", text);
+            write!(buf, "{}", text)?;
         }
+        Ok(())
     }
 }
 
-fn fresh_line(buf: &mut impl Write) {
+fn fresh_line(buf: &mut impl Write) -> Result<()> {
     // buf.push('\n');
-    write!(buf, "\n");
-}
-
-fn color_wheel(level: i32, m: i32) -> String {
-    match level % m {
-        1 => format!("{}", color::Fg(color::White)),
-        2 => format!("{}", color::Fg(color::Magenta)),
-        3 => format!("{}", color::Fg(color::Cyan)),
-        4 => format!("{}", color::Fg(color::Red)),
-        5 => format!("{}", color::Fg(color::Green)),
-        _ => format!("{}", color::Fg(color::Blue)),
-    }
+    write!(buf, "\n")?;
+    Ok(())
 }
 
 fn as_24_bit_terminal_escaped(v: &[(Style, &str)], bg: bool) -> String {
-    let mut res: String = String::new();
-
+    let mut res = String::new();
     for &(ref style, text) in v.iter() {
-        // let Fg = Rgb(style.foreground.r, style.foreground.g, style.foreground.b);
-        // let Bg = Rgb(style.background.r, style.background.g, style.foreground.b);
-        // Fg.write_fg(&mut res);
         if bg {
             write!(
                 res,
@@ -451,18 +444,8 @@ fn as_24_bit_terminal_escaped(v: &[(Style, &str)], bg: bool) -> String {
             "\x1b[38;2;{};{};{}m{}",
             style.foreground.r, style.foreground.g, style.foreground.b, text
         ).unwrap();
-        // write!(
-        //     res,
-        //     "\x1b[38;5;{}m{}",
-        //     fromrgb(style.foreground.r, style.foreground.g, style.foreground.b),
-        //     text
-        // ).unwrap();
     }
-    res.push_str("\x1b[0m");
+    write!(res, "\x1b[0m").unwrap();
 
     res
-}
-
-fn fromrgb(r: u8, g: u8, b: u8) -> u16 {
-    return 16 + 36 * (r as u16) + 6 * (g as u16) + (b as u16);
 }

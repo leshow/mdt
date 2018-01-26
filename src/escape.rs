@@ -20,7 +20,7 @@
 
 //! Utility functions for HTML escaping
 
-use std::io::Write;
+use std::io::{self, Write};
 use std::str::from_utf8;
 
 static HREF_SAFE: [u8; 128] = [
@@ -32,7 +32,7 @@ static HREF_SAFE: [u8; 128] = [
 
 static HEX_CHARS: &'static [u8] = b"0123456789ABCDEF";
 
-pub fn escape_href<W: Write>(ob: &mut W, s: &str) {
+pub fn escape_href<W: Write>(ob: &mut W, s: &str) -> io::Result<()> {
     let mut mark = 0;
     for i in 0..s.len() {
         let c = s.as_bytes()[i];
@@ -41,27 +41,28 @@ pub fn escape_href<W: Write>(ob: &mut W, s: &str) {
 
             // write partial substring up to mark
             if mark < i {
-                write!(ob, "{}", &s[mark..i]);
+                write!(ob, "{}", &s[mark..i])?;
             }
             match c {
                 b'&' => {
-                    write!(ob, "&amp;");
+                    write!(ob, "&amp;")?;
                 }
                 b'\'' => {
-                    write!(ob, "&#x27;");
+                    write!(ob, "&#x27;")?;
                 }
                 _ => {
                     let mut buf = [0u8; 3];
                     buf[0] = b'%';
                     buf[1] = HEX_CHARS[((c as usize) >> 4) & 0xF];
                     buf[2] = HEX_CHARS[(c as usize) & 0xF];
-                    write!(ob, "{}", from_utf8(&buf).unwrap());
+                    write!(ob, "{}", from_utf8(&buf).unwrap())?;
                 }
             }
             mark = i + 1; // all escaped characters are ASCII
         }
     }
-    write!(ob, "{}", &s[mark..]);
+    write!(ob, "{}", &s[mark..])?;
+    Ok(())
 }
 
 static HTML_ESCAPE_TABLE: [u8; 256] = [
@@ -77,7 +78,7 @@ static HTML_ESCAPE_TABLE: [u8; 256] = [
 
 static HTML_ESCAPES: [&'static str; 6] = ["", "&quot;", "&amp;", "&#47;", "&lt;", "&gt;"];
 
-pub fn escape_html<W: Write>(ob: &mut W, s: &str, secure: bool) {
+pub fn escape_html<W: Write>(ob: &mut W, s: &str, secure: bool) -> io::Result<()> {
     let size = s.len();
     let bytes = s.as_bytes();
     let mut mark = 0;
@@ -95,11 +96,12 @@ pub fn escape_html<W: Write>(ob: &mut W, s: &str, secure: bool) {
         let c = bytes[i];
         let escape = HTML_ESCAPE_TABLE[c as usize];
         if escape != 0 && (secure || c != b'/') {
-            write!(ob, "{}", &s[mark..i]);
-            write!(ob, "{}", HTML_ESCAPES[escape as usize]);
+            write!(ob, "{}", &s[mark..i])?;
+            write!(ob, "{}", HTML_ESCAPES[escape as usize])?;
             mark = i + 1; // all escaped characters are ASCII
         }
         i += 1;
     }
-    write!(ob, "{}", &s[mark..]);
+    write!(ob, "{}", &s[mark..])?;
+    Ok(())
 }
