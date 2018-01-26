@@ -1,4 +1,4 @@
-use MarkdownError::*;
+use MDResult;
 use escape::{escape_href, escape_html};
 use pulldown_cmark::{Alignment, Event, Tag};
 use std::borrow::Cow;
@@ -316,7 +316,7 @@ where
             }
             Tag::Table(_) => {
                 self.in_table = false;
-                write!(buf, "</tbody></table>\n")?;
+                self.table.draw(buf)?;
             }
             Tag::TableHead => {
                 write!(buf, "</tr></thead><tbody>\n")?;
@@ -368,7 +368,6 @@ where
             Tag::Image(_, _) => (), // shouldn't happen, handled in start
             Tag::FootnoteDefinition(_) => {
                 fresh_line(buf)?;
-                // write!(buf, "{:?}", self.table);
             }
         }
         Ok(())
