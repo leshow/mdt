@@ -32,10 +32,10 @@ If you have a terminal that supports truecolor (24-bit color), you can pass a fl
 1. italic
 1. footnotes
 1. links
+1. tables
 
 Not working:
 
-1. Tables
 1. Images
 1. Inline html (not planned)
 
