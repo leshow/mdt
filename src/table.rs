@@ -45,30 +45,36 @@ pub trait Table: TableFns {
     const OUTER_TOP_LEFT: char;
     const OUTER_TOP_RIGHT: char;
     fn new() -> Self;
-    fn draw(&mut self, w: &mut impl Write) -> Result<()> {
-        // top row
-        write!(w, "{}{}", Self::OUTER_TOP_LEFT, Self::OUTER_TOP_HORIZONTAL)?;
-        for col in 0..self.index() - 1 {
-            let width = self.table()[col].len();
+    fn draw<W: Write>(&mut self, w: &mut W) -> Result<()> {
+        let char_row = |left: char, hor: char, intr: char, right: char, w: &mut W| -> Result<()> {
+            write!(w, "{}{}", left, hor)?;
+            for col in 0..self.index() - 1 {
+                let width = self.table()[col].len();
+                write!(
+                    w,
+                    "{}{}",
+                    iter::repeat(hor).take(width).collect::<String>(),
+                    intr
+                )?;
+            }
+            let width = self.table()[self.index() - 1].len();
             write!(
                 w,
-                "{}{}",
-                iter::repeat(Self::OUTER_TOP_HORIZONTAL)
-                    .take(width)
-                    .collect::<String>(),
-                Self::OUTER_TOP_INTERSECT
+                "{}{}\n",
+                iter::repeat(hor).take(width).collect::<String>(),
+                right
             )?;
-        }
-        let width = self.table()[self.index() - 1].len();
-        write!(
-            w,
-            "{}{}\n",
-            iter::repeat(Self::OUTER_TOP_HORIZONTAL)
-                .take(width)
-                .collect::<String>(),
-            Self::OUTER_TOP_RIGHT
-        )?;
+            Ok(())
+        };
 
+        // top row
+        char_row(
+            Self::OUTER_TOP_LEFT,
+            Self::OUTER_TOP_HORIZONTAL,
+            Self::OUTER_TOP_INTERSECT,
+            Self::OUTER_TOP_RIGHT,
+            w,
+        )?;
         // header row
         write!(w, "{} ", Self::H_OUTER_LEFT_VERTICAL)?;
         for col in 0..self.index() - 1 {
@@ -76,17 +82,45 @@ pub trait Table: TableFns {
         }
         write!(
             w,
-            "{}{}",
+            "{}{}\n",
             self.table()[self.index() - 1],
             Self::H_OUTER_RIGHT_VERTICAL
         )?;
 
-        // body rows
-        let pos = |row: usize, i: usize| row * (i % self.index());
+        // bottom head
+        char_row(
+            Self::OUTER_BOTTOM_LEFT,
+            Self::OUTER_BOTTOM_HORIZONTAL,
+            Self::OUTER_BOTTOM_INTERSECT,
+            Self::OUTER_BOTTOM_RIGHT,
+            w,
+        )?;
 
-        for pos in 1..self.table().len() {
-            let col = pos % self.index();
+        // body rows
+        let pos = |row: usize, col: usize| row * self.index() + col;
+
+        for row in 1..(self.table().len() / self.index()) {
+            write!(w, "{} ", Self::INNER_VERTICAL)?;
+            for col in 0..self.index() - 1 {
+                let idx = pos(row, col);
+                write!(w, "{}{}", self.table()[idx], Self::INNER_VERTICAL)?;
+            }
+            write!(
+                w,
+                "{}{}\n",
+                self.table()[pos(row, self.index() - 1)],
+                Self::INNER_VERTICAL
+            )?;
         }
+
+        // footer row
+        char_row(
+            Self::F_OUTER_LEFT_INTERSECT,
+            Self::F_INNER_HORIZONTAL,
+            Self::F_INNER_INTERSECT,
+            Self::F_OUTER_RIGHT_INTERSECT,
+            w,
+        )?;
 
         Ok(())
     }
