@@ -71,19 +71,19 @@ fn highlight_lines(&self, s: &str, buf: &mut String) {
 
 Tables:
 
-| Feature     | Working            | Other |
-| ----------- | ------------------ | ----- |
-| paragraphs  | done               | foo   |
-| rule        | :white_check_mark: | foo   |
-| headers     | :white_check_mark: | foo   |
-| lists       | :white_check_mark: | foo   |
-| bold        | :white_check_mark: | foo   |
-| italic      | :white_check_mark: | foo   |
-| footnotes   | :white_check_mark: | fooo  |
-| links       | :white_check_mark: | foo   |
-| tables      | :poop:             | fooo  |
-| images      | :poop:             | foo   |
-| inline html | :poop:             | foo   |
+| Feature     | Working | Other |
+| ----------- | ------- | ----- |
+| paragraphs  | done    | foo   |
+| rule        | done    | foo   |
+| headers     | done    | foo   |
+| lists       | done    | foo   |
+| bold        | done    | foo   |
+| italic      | done    | foo   |
+| footnotes   | done    | fooo  |
+| links       | done    | foo   |
+| tables      | done    | fooo  |
+| images      | :poop:  | foo   |
+| inline html | :poop:  | foo   |
 
 Unordered List:
 

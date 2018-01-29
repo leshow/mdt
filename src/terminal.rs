@@ -7,7 +7,7 @@ use std::fmt::{self, Debug, Formatter};
 use std::fmt::Write as FWrite;
 use std::io::{Result, Write};
 use syntect::easy::HighlightLines;
-use syntect::highlighting::{Style, ThemeSet};
+use syntect::highlighting::{FontStyle, Style, ThemeSet};
 use syntect::parsing::SyntaxSet;
 use table::{AsciiTable, Table, TableState};
 // use syntect::util::as_24_bit_terminal_escaped;
@@ -82,10 +82,9 @@ where
     T: Table + Debug,
     W: Write,
 {
-    // type Output = String;
     fn parse(&mut self, iter: I, w: &mut W) -> Result<()> {
         let mut numbers = HashMap::new();
-        // let mbuf = &mut buf;
+
         for event in iter {
             match event {
                 Event::Start(tag) => {
@@ -105,7 +104,6 @@ where
         }
 
         // write links as footnotes
-
         for (i, &(ref dest, ref title)) in self.links.iter().enumerate() {
             let i = i + 1;
             if !title.is_empty() {
@@ -161,17 +159,10 @@ where
             }
             Tag::Rule => {
                 fresh_line(buf)?;
-                // buf.push_str(&"-".repeat(self.width()));
                 write!(buf, "{}", &"-".repeat(self.width()))?;
             }
             Tag::Header(level) => {
                 fresh_line(buf)?;
-                // buf.push_str(&format!(
-                //     "{}{} {} ",
-                //     color::Fg(color::Yellow),
-                //     "#".repeat(level as usize),
-                //     color::Fg(color::Red)
-                // ));
                 write!(
                     buf,
                     "{}{} {} ",
@@ -183,26 +174,15 @@ where
             Tag::Table(alignments) => {
                 self.table_alignments = alignments;
                 self.in_table = true;
-                // buf.push_str("<table>");
                 fresh_line(buf)?;
             }
             Tag::TableHead => {
-                // self.table_state = TableState::Head;
                 self.table.set_table_state(TableState::Head);
-                // buf.push_str("<thead><tr>");
-                // write!(buf, "<thead><tr>")?;
             }
             Tag::TableRow => {
                 self.table.set_index(0);
-                // buf.push_str("<tr>");
-                // write!(buf, "<tr>")?;
             }
             Tag::TableCell => {
-                // match self.table.table_state() {
-                //     TableState::Head => write!(buf, "<tr")?,
-                //     TableState::Body => write!(buf, "<td")?,
-                // };
-
                 // write!(
                 //     buf,
                 //     "{}",
@@ -213,7 +193,6 @@ where
                 //         _ => "",
                 //     }
                 // )?;
-                // write!(buf, ">")?;
             }
             Tag::BlockQuote => {
                 fresh_line(buf)?;
@@ -227,18 +206,8 @@ where
             }
             Tag::CodeBlock(info) => {
                 fresh_line(buf)?;
-                // let lang = info.split(' ').next().unwrap();
                 self.lang = info.split(' ').next().map(String::from);
                 self.in_code = true;
-                // if lang.is_empty() {
-                //     // buf.push_str("<pre><code>");
-
-                // } else {
-                //     // buf.push_str("<pre><code class=\"language-");
-                //     // escape_h                let align = ;tml(buf, lang, false);
-                //     // buf.push_str("\">");
-
-                // }
             }
             Tag::List(Some(1)) => {
                 fresh_line(buf)?;
@@ -251,7 +220,6 @@ where
                 // <ol start=start>
                 self.ordered = true;
                 self.items = start;
-                // write!(buf, "<ol start=\"{}\">\n", start);
             }
             Tag::List(None) => {
                 // UL
@@ -323,23 +291,11 @@ where
                 self.table.draw(buf)?;
             }
             Tag::TableHead => {
-                // write!(buf, "</tr></thead><tbody>\n")?;
                 self.table.set_table_state(TableState::Body);
             }
-            Tag::TableRow => {
-                // write!(buf, "</tr>\n")?;
-            }
+            Tag::TableRow => {}
             Tag::TableCell => {
-                // match self.table.table_state() {
-                //     TableState::Head => {
-                //         write!(buf, "</th>")?;
-                //     }
-                //     TableState::Body => {
-                //         write!(buf, "</td>")?;
-                //     }
-                // }
                 self.table.inc_index();
-                // self.table_cell_index += 1;
             }
             Tag::BlockQuote => {
                 write!(buf, "{}", *RESET_COLOR)?;
@@ -382,7 +338,7 @@ where
     fn hard_break(&mut self) {}
 
     fn write_code<W: Write>(&mut self, buf: &mut W) -> Result<()> {
-        let ts = &self.theme_set.themes["base16-ocean.dark"];
+        let ts = &self.theme_set.themes["Solarized (dark)"];
         let ps = &self.syntax_set;
 
         let syntax = if let Some(ref lang) = self.lang {
@@ -394,6 +350,7 @@ where
         let mut h = HighlightLines::new(syntax, ts);
         for line in self.code.lines() {
             let regions: Vec<(Style, &str)> = h.highlight(&line);
+            // write_as_ansi(buf, &regions)?;
             write!(
                 buf,
                 "  {}\n",
@@ -411,14 +368,11 @@ where
             if self.truecolor {
                 self.code.push_str(&text);
             } else {
-                // buf.push_str(&format!("  {}", text));
                 write!(buf, "   {}", text)?;
             }
         } else if self.in_table {
-            //println!("{:?} {:?}", self.table.index(), text);
             self.table.push(&text);
         } else {
-            // buf.push_str(&text);
             write!(buf, "{}", text)?;
         }
         Ok(())
@@ -450,4 +404,51 @@ fn as_24_bit_terminal_escaped(v: &[(Style, &str)], bg: bool) -> String {
     write!(res, "\x1b[0m").unwrap();
 
     res
+}
+
+fn write_as_ansi<W: Write>(w: &mut W, regions: &[(Style, &str)]) -> Result<()> {
+    for &(style, text) in regions {
+        let rgb = {
+            let fg = style.foreground;
+            (fg.r, fg.g, fg.b)
+        };
+        match rgb {
+            // base03, base02, base01, base00, base0, base1, base2, and base3
+            (0x00, 0x2b, 0x36)
+            | (0x07, 0x36, 0x42)
+            | (0x58, 0x6e, 0x75)
+            | (0x65, 0x7b, 0x83)
+            | (0x83, 0x94, 0x96)
+            | (0x93, 0xa1, 0xa1)
+            | (0xee, 0xe8, 0xd5)
+            | (0xfd, 0xf6, 0xe3) => write!(w, "{}", color::Fg(color::Reset))?,
+            (0xb5, 0x89, 0x00) => write!(w, "{}", color::Fg(color::Yellow))?, // yellow
+            (0xcb, 0x4b, 0x16) => write!(w, "{}", color::Fg(color::LightRed))?, // orange
+            (0xdc, 0x32, 0x2f) => write!(w, "{}", color::Fg(color::Red))?,    // red
+            (0xd3, 0x36, 0x82) => write!(w, "{}", color::Fg(color::Magenta))?, // magenta
+            (0x6c, 0x71, 0xc4) => write!(w, "{}", color::Fg(color::LightMagenta))?, // violet
+            (0x26, 0x8b, 0xd2) => write!(w, "{}", color::Fg(color::Blue))?,   // blue
+            (0x2a, 0xa1, 0x98) => write!(w, "{}", color::Fg(color::Cyan))?,   // cyan
+            (0x85, 0x99, 0x00) => write!(w, "{}", color::Fg(color::Green))?,  // green
+            (r, g, b) => panic!("Unexpected RGB colour: #{:2>0x}{:2>0x}{:2>0x}", r, g, b),
+        };
+        let font = style.font_style;
+        if font.contains(FontStyle::BOLD) {
+            write!(w, "{}", style::Bold)?;
+        } else {
+            write!(w, "{}", style::NoBold)?;
+        }
+        if font.contains(FontStyle::ITALIC) {
+            write!(w, "{}", style::Italic)?;
+        } else {
+            write!(w, "{}", style::NoItalic)?;
+        }
+        if font.contains(FontStyle::UNDERLINE) {
+            write!(w, "{}", style::Underline)?;
+        } else {
+            write!(w, "{}", style::NoUnderline)?;
+        }
+        write!(w, "{}{}", text, style::Reset)?;
+    }
+    Ok(())
 }

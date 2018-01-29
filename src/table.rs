@@ -37,7 +37,7 @@ pub trait Table: TableFns {
     fn new() -> Self;
     fn draw<W: Write>(&mut self, w: &mut W) -> Result<()> {
         let char_row = |left: char, hor: char, intr: char, right: char, w: &mut W| -> Result<()> {
-            write!(w, "{}{}", left, hor)?;
+            write!(w, "{}", left)?;
             for col in 0..self.index() - 1 {
                 let width = self.table()[col].len();
                 write!(
@@ -65,8 +65,9 @@ pub trait Table: TableFns {
             Self::OUTER_TOP_RIGHT,
             w,
         )?;
+
         // header row
-        write!(w, "{} ", Self::H_OUTER_LEFT_VERTICAL)?;
+        write!(w, "{}", Self::H_OUTER_LEFT_VERTICAL)?;
         for col in 0..self.index() - 1 {
             write!(w, "{}{}", self.table()[col], Self::H_INNER_VERTICAL)?;
         }
@@ -90,7 +91,7 @@ pub trait Table: TableFns {
         let pos = |row: usize, col: usize| row * self.index() + col;
 
         for row in 1..(self.table().len() / self.index()) {
-            write!(w, "{} ", Self::INNER_VERTICAL)?;
+            write!(w, "{}", Self::INNER_VERTICAL)?;
             for col in 0..self.index() - 1 {
                 let idx = pos(row, col);
                 write!(w, "{}{}", self.table()[idx], Self::INNER_VERTICAL)?;
@@ -129,16 +130,6 @@ impl Default for TableState {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct AsciiTable {
-    table: Vec<String>,
-    cur: usize,
-    table_state: TableState,
-    col_count: usize,
-    // table_alignments: Vec<Alignment>,
-    table_cell_index: usize,
-}
-
 macro_rules! impl_table {
     ($name:ident) => (
         impl TableFns for $name {
@@ -171,6 +162,16 @@ macro_rules! impl_table {
             }
         }
     )
+}
+
+#[derive(Debug, Default)]
+pub struct AsciiTable {
+    table: Vec<String>,
+    cur: usize,
+    table_state: TableState,
+    col_count: usize,
+    // table_alignments: Vec<Alignment>,
+    table_cell_index: usize,
 }
 
 impl_table!(AsciiTable);
