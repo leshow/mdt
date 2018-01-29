@@ -43,6 +43,8 @@ pub struct Terminal<'a, T> {
     code: String,
     lang: Option<String>,
     dontskip: bool,
+    syntax_set: SyntaxSet,
+    theme_set: ThemeSet,
 }
 // Idea: instead of state variables like 'in_code', Terminal could hold
 // a CodeContext { lang, code } and an active context, we populate the active Context
@@ -68,6 +70,8 @@ where
             term_size: (100, 100),
             links: Vec::new(),
             truecolor: false,
+            syntax_set: SyntaxSet::load_defaults_newlines(),
+            theme_set: ThemeSet::load_defaults(),
         }
     }
 }
@@ -186,30 +190,30 @@ where
                 // self.table_state = TableState::Head;
                 self.table.set_table_state(TableState::Head);
                 // buf.push_str("<thead><tr>");
-                write!(buf, "<thead><tr>")?;
+                // write!(buf, "<thead><tr>")?;
             }
             Tag::TableRow => {
                 self.table.set_index(0);
                 // buf.push_str("<tr>");
-                write!(buf, "<tr>")?;
+                // write!(buf, "<tr>")?;
             }
             Tag::TableCell => {
-                match self.table.table_state() {
-                    TableState::Head => write!(buf, "<tr")?,
-                    TableState::Body => write!(buf, "<td")?,
-                };
+                // match self.table.table_state() {
+                //     TableState::Head => write!(buf, "<tr")?,
+                //     TableState::Body => write!(buf, "<td")?,
+                // };
 
-                write!(
-                    buf,
-                    "{}",
-                    match self.table_alignments.get(self.table.index()) {
-                        Some(&Alignment::Left) => " align=\"left\"",
-                        Some(&Alignment::Center) => " align=\"center\"",
-                        Some(&Alignment::Right) => " align=\"right\"",
-                        _ => "",
-                    }
-                )?;
-                write!(buf, ">")?;
+                // write!(
+                //     buf,
+                //     "{}",
+                //     match self.table_alignments.get(self.table.index()) {
+                //         Some(&Alignment::Left) => " align=\"left\"",
+                //         Some(&Alignment::Center) => " align=\"center\"",
+                //         Some(&Alignment::Right) => " align=\"right\"",
+                //         _ => "",
+                //     }
+                // )?;
+                // write!(buf, ">")?;
             }
             Tag::BlockQuote => {
                 fresh_line(buf)?;
@@ -319,21 +323,21 @@ where
                 self.table.draw(buf)?;
             }
             Tag::TableHead => {
-                write!(buf, "</tr></thead><tbody>\n")?;
+                // write!(buf, "</tr></thead><tbody>\n")?;
                 self.table.set_table_state(TableState::Body);
             }
             Tag::TableRow => {
-                write!(buf, "</tr>\n")?;
+                // write!(buf, "</tr>\n")?;
             }
             Tag::TableCell => {
-                match self.table.table_state() {
-                    TableState::Head => {
-                        write!(buf, "</th>")?;
-                    }
-                    TableState::Body => {
-                        write!(buf, "</td>")?;
-                    }
-                }
+                // match self.table.table_state() {
+                //     TableState::Head => {
+                //         write!(buf, "</th>")?;
+                //     }
+                //     TableState::Body => {
+                //         write!(buf, "</td>")?;
+                //     }
+                // }
                 self.table.inc_index();
                 // self.table_cell_index += 1;
             }
@@ -378,8 +382,8 @@ where
     fn hard_break(&mut self) {}
 
     fn write_code<W: Write>(&mut self, buf: &mut W) -> Result<()> {
-        let ts = ThemeSet::load_defaults();
-        let ps = SyntaxSet::load_defaults_newlines();
+        let ts = &self.theme_set.themes["base16-ocean.dark"];
+        let ps = &self.syntax_set;
 
         let syntax = if let Some(ref lang) = self.lang {
             ps.find_syntax_by_token(lang)
@@ -387,11 +391,14 @@ where
             ps.find_syntax_by_first_line(&self.code)
         }.unwrap_or_else(|| ps.find_syntax_plain_text());
 
-        let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+        let mut h = HighlightLines::new(syntax, ts);
         for line in self.code.lines() {
             let regions: Vec<(Style, &str)> = h.highlight(&line);
-            let highlighted = format!("  {}", as_24_bit_terminal_escaped(&regions[..], false));
-            write!(buf, "{}\n", &highlighted)?;
+            write!(
+                buf,
+                "  {}\n",
+                as_24_bit_terminal_escaped(&regions[..], false)
+            )?;
         }
         // Clear the formatting
         write!(buf, "\x1b[0m")?;
