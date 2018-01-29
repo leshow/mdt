@@ -17,17 +17,10 @@ pub trait TableFns {
 pub trait Table: TableFns {
     const F_INNER_HORIZONTAL: char;
     const F_INNER_INTERSECT: char;
-    const F_INNER_VERTICAL: char;
     const F_OUTER_LEFT_INTERSECT: char;
-    const F_OUTER_LEFT_VERTICAL: char;
     const F_OUTER_RIGHT_INTERSECT: char;
-    const F_OUTER_RIGHT_VERTICAL: char;
-    const H_INNER_HORIZONTAL: char;
-    const H_INNER_INTERSECT: char;
     const H_INNER_VERTICAL: char;
-    const H_OUTER_LEFT_INTERSECT: char;
     const H_OUTER_LEFT_VERTICAL: char;
-    const H_OUTER_RIGHT_INTERSECT: char;
     const H_OUTER_RIGHT_VERTICAL: char;
     const INNER_HORIZONTAL: char;
     const INNER_INTERSECT: char;
@@ -36,14 +29,11 @@ pub trait Table: TableFns {
     const OUTER_BOTTOM_INTERSECT: char;
     const OUTER_BOTTOM_LEFT: char;
     const OUTER_BOTTOM_RIGHT: char;
-    const OUTER_LEFT_INTERSECT: char;
-    const OUTER_LEFT_VERTICAL: char;
-    const OUTER_RIGHT_INTERSECT: char;
-    const OUTER_RIGHT_VERTICAL: char;
     const OUTER_TOP_HORIZONTAL: char;
     const OUTER_TOP_INTERSECT: char;
     const OUTER_TOP_LEFT: char;
     const OUTER_TOP_RIGHT: char;
+
     fn new() -> Self;
     fn draw<W: Write>(&mut self, w: &mut W) -> Result<()> {
         let char_row = |left: char, hor: char, intr: char, right: char, w: &mut W| -> Result<()> {
@@ -188,17 +178,10 @@ impl_table!(AsciiTable);
 impl Table for AsciiTable {
     const F_INNER_HORIZONTAL: char = '-';
     const F_INNER_INTERSECT: char = '+';
-    const F_INNER_VERTICAL: char = '|';
     const F_OUTER_LEFT_INTERSECT: char = '+';
-    const F_OUTER_LEFT_VERTICAL: char = '|';
     const F_OUTER_RIGHT_INTERSECT: char = '+';
-    const F_OUTER_RIGHT_VERTICAL: char = '|';
-    const H_INNER_HORIZONTAL: char = '-';
-    const H_INNER_INTERSECT: char = '+';
     const H_INNER_VERTICAL: char = '|';
-    const H_OUTER_LEFT_INTERSECT: char = '+';
     const H_OUTER_LEFT_VERTICAL: char = '|';
-    const H_OUTER_RIGHT_INTERSECT: char = '+';
     const H_OUTER_RIGHT_VERTICAL: char = '|';
     const INNER_HORIZONTAL: char = '-';
     const INNER_INTERSECT: char = '+';
@@ -207,49 +190,10 @@ impl Table for AsciiTable {
     const OUTER_BOTTOM_INTERSECT: char = '+';
     const OUTER_BOTTOM_LEFT: char = '+';
     const OUTER_BOTTOM_RIGHT: char = '+';
-    const OUTER_LEFT_INTERSECT: char = '+';
-    const OUTER_LEFT_VERTICAL: char = '|';
-    const OUTER_RIGHT_INTERSECT: char = '+';
-    const OUTER_RIGHT_VERTICAL: char = '|';
     const OUTER_TOP_HORIZONTAL: char = '-';
     const OUTER_TOP_INTERSECT: char = '+';
     const OUTER_TOP_LEFT: char = '+';
     const OUTER_TOP_RIGHT: char = '+';
-
-    // fn draw(&mut self, w: &mut impl Write) -> Result<()> {
-    //     write!(
-    //         w,
-    //         "{}{}",
-    //         AsciiTable::OUTER_TOP_LEFT,
-    //         AsciiTable::OUTER_TOP_HORIZONTAL
-    //     )?;
-    //     let width: usize = self.table[0..self.table_cell_index]
-    //         .iter()
-    //         .map(|x| x.len())
-    //         .sum();
-
-    //     let row = 0;
-    //     for col in 0..self.table_cell_index - 1 {
-    //         let width = self.table[col].len();
-    //         write!(
-    //             w,
-    //             "{}{}",
-    //             iter::repeat(AsciiTable::OUTER_TOP_HORIZONTAL)
-    //                 .take(width)
-    //                 .collect::<String>(),
-    //             AsciiTable::OUTER_TOP_INTERSECT
-    //         )?;
-    //     }
-
-    //     write!(
-    //         w,
-    //         "{}{}",
-    //         AsciiTable::OUTER_TOP_HORIZONTAL,
-    //         AsciiTable::OUTER_TOP_RIGHT
-    //     )?;
-
-    //     Ok(())
-    // }
 
     fn new() -> Self {
         AsciiTable {
