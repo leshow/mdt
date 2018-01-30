@@ -1,6 +1,4 @@
-// use pulldown_cmark::Alignment;
-use MDResult;
-use std::fmt::{self, Display};
+use std::fmt::Display;
 use std::io::{Result, Write};
 use std::iter;
 
@@ -197,9 +195,7 @@ impl Table for AsciiTable {
     const OUTER_TOP_RIGHT: char = '+';
 
     fn new() -> Self {
-        AsciiTable {
-            ..Default::default()
-        }
+        AsciiTable::default()
     }
 
     fn push(&mut self, item: &str) {

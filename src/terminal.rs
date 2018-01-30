@@ -1,16 +1,14 @@
-use MDResult;
 use escape::{escape_href, escape_html};
 use pulldown_cmark::{Alignment, Event, Tag};
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
+use std::fmt::Debug;
 use std::fmt::Write as FWrite;
 use std::io::{Result, Write};
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{FontStyle, Style, ThemeSet};
 use syntect::parsing::SyntaxSet;
 use table::{AsciiTable, Table, TableState};
-// use syntect::util::as_24_bit_terminal_escaped;
 use termion::color;
 use termion::style;
 
@@ -269,7 +267,6 @@ where
                 // buf.push_str("\"><sup class=\"footnote-definition-label\">");
 
                 let number = numbers.entry(name).or_insert(len);
-                // buf.push_str(&*format!("{}", number));
 
                 write!(buf, "[^{}] ", number.to_string())?;
                 self.dontskip = true;
@@ -380,7 +377,6 @@ where
 }
 
 fn fresh_line(buf: &mut impl Write) -> Result<()> {
-    // buf.push('\n');
     write!(buf, "\n")?;
     Ok(())
 }

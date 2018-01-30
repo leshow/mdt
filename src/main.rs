@@ -27,12 +27,10 @@ fn main() {
     }
 }
 
-fn run() -> Result<(), MarkdownError> {
+fn run() -> MDResult<()> {
     // parse args
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
-    // let mut term = io::stdout().into_raw_mode().unwrap();
-    // println!("{:?}", term.available_colors().unwrap());
 
     let mut opts = GetOpts::new();
     opts.optflag(
@@ -65,9 +63,8 @@ fn run() -> Result<(), MarkdownError> {
     let term_size = termion::terminal_size()?;
 
     let mut terminal = TermAscii::new(term_size, truecolor);
+    // write to stdout
     terminal.parse(p, &mut io::stdout())?;
-    // io::stdout().write_all(out.as_bytes())?;
-    // io::stdout().flush()?;
 
     Ok(())
 }
