@@ -1,18 +1,19 @@
+use std::borrow::Cow;
 use std::fmt::Display;
 use std::io::{Result, Write};
 use std::iter;
 
-pub trait TableFns {
+pub trait TableFns<'a> {
     fn set_table_state(&mut self, state: TableState);
     fn table_state(&self) -> TableState;
     fn inc_col(&mut self);
     fn inc_index(&mut self);
     fn set_index(&mut self, idx: usize);
     fn index(&self) -> usize;
-    fn table(&self) -> &[String];
+    fn table(&self) -> &[Cow<'a, str>];
 }
 
-pub trait Table: TableFns {
+pub trait Table<'a>: TableFns<'a> {
     const F_INNER_HORIZONTAL: char;
     const F_INNER_INTERSECT: char;
     const F_OUTER_LEFT_INTERSECT: char;
@@ -113,7 +114,7 @@ pub trait Table: TableFns {
 
         Ok(())
     }
-    fn push(&mut self, item: &str);
+    fn push(&mut self, item: Cow<'a, str>);
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -130,8 +131,8 @@ impl Default for TableState {
 
 macro_rules! impl_table {
     ($name:ident) => (
-        impl TableFns for $name {
-            fn table(&self) -> &[String] {
+        impl<'a> TableFns<'a> for $name<'a> {
+            fn table(&self) -> &[Cow<'a, str>] {
                 self.table.as_slice()
             }
             fn set_table_state(&mut self, state: TableState) {
@@ -163,8 +164,8 @@ macro_rules! impl_table {
 }
 
 #[derive(Debug, Default)]
-pub struct AsciiTable {
-    table: Vec<String>,
+pub struct AsciiTable<'a> {
+    table: Vec<Cow<'a, str>>,
     cur: usize,
     table_state: TableState,
     col_count: usize,
@@ -174,7 +175,7 @@ pub struct AsciiTable {
 
 impl_table!(AsciiTable);
 
-impl Table for AsciiTable {
+impl<'a> Table<'a> for AsciiTable<'a> {
     const F_INNER_HORIZONTAL: char = '-';
     const F_INNER_INTERSECT: char = '+';
     const F_OUTER_LEFT_INTERSECT: char = '+';
@@ -198,12 +199,12 @@ impl Table for AsciiTable {
         AsciiTable::default()
     }
 
-    fn push(&mut self, item: &str) {
+    fn push(&mut self, item: Cow<'a, str>) {
         let len = self.table.len();
         if len == self.cur {
-            self.table.push(String::from(item));
+            self.table.push(item);
         } else {
-            self.table[self.cur].push_str(&item);
+            self.table[self.cur].to_mut().push_str(&item);
         }
     }
 }

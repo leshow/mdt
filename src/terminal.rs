@@ -17,7 +17,7 @@ lazy_static! {
     static ref RESET_STYLE: String = format!("{}", style::Reset);
 }
 
-pub type TermAscii<'a> = Terminal<'a, AsciiTable>;
+pub type TermAscii<'a> = Terminal<'a, AsciiTable<'a>>;
 
 pub trait MDParser<'a, I, W>
 where
@@ -51,7 +51,7 @@ pub struct Terminal<'a, T> {
 
 impl<'a, T> Default for Terminal<'a, T>
 where
-    T: Table,
+    T: Table<'a>,
 {
     fn default() -> Self {
         Terminal {
@@ -77,7 +77,7 @@ where
 impl<'a, I, T, W> MDParser<'a, I, W> for Terminal<'a, T>
 where
     I: Iterator<Item = Event<'a>>,
-    T: Table + Debug,
+    T: Table<'a> + Debug,
     W: Write,
 {
     fn parse(&mut self, iter: I, w: &mut W) -> Result<()> {
@@ -116,7 +116,7 @@ where
 
 impl<'a, T> Terminal<'a, T>
 where
-    T: Table + Debug,
+    T: Table<'a> + Debug,
 {
     pub fn new(term_size: (u16, u16), truecolor: bool) -> Terminal<'a, T> {
         Terminal {
@@ -368,7 +368,7 @@ where
                 write!(buf, "   {}", text)?;
             }
         } else if self.in_table {
-            self.table.push(&text);
+            self.table.push(text);
         } else {
             write!(buf, "{}", text)?;
         }
