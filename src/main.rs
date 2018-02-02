@@ -1,5 +1,3 @@
-#![feature(universal_impl_trait, conservative_impl_trait)]
-
 extern crate getopts;
 #[macro_use]
 extern crate lazy_static;

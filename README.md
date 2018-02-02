@@ -20,9 +20,9 @@ $ mdt < README.md
 [...]
 ```
 
-If you have a terminal that supports truecolor (24-bit color), you can pass a flag `-t`. Any codeblocks will have their syntax highlighted and rendered in the appropriate language format. Unfortunately it doesn't seem like there's a good way to detect truecolor. If anyone knows of a way please PR or suggest how.
+If you have a terminal that supports truecolor (24-bit color), you can pass a flag `-t` to improve the output color. Default terminal colors map to 256-bit color. Unfortunately it doesn't seem like there's a good way to detect truecolor. If anyone knows of a way please PR or suggest how.
 
-### Features (currently)
+### Supported Markdown Features
 
 1. paragraph
 1. rule
@@ -32,14 +32,16 @@ If you have a terminal that supports truecolor (24-bit color), you can pass a fl
 1. italic
 1. footnotes
 1. links
-1. tables
+1. tables (ascii tables only for now)
 
 Not working:
 
 1. Images
 1. Inline html (not planned)
 
-#### Test header (ignore this)
+#### TEST SECTION (ignore below)
+
+try highlighting,
 
 ```js
 function foo(x) {
@@ -47,7 +49,7 @@ function foo(x) {
 }
 ```
 
-firstly,
+and rust,
 
 ```rust
 fn highlight_lines(&self, s: &str, buf: &mut String) {
@@ -91,13 +93,12 @@ Unordered List:
 * list two
 * list three
 
-This is a new paragraph.[^1] And I'm going to reference [a link][1]. Let's do some other stuff:
+This is a footer.[^1] And I'm going to reference [a link][1]. Let's do some other stuff:
 
-> quote me plz senpai. This line is part
-> of the same quote.
+> quote me plz senpai.
 
-Oh hai!
+Goodbye!!
 
 [^1]: Footnote1 this is a footnote ref
 
-[1]: http://www.google.com
+[1]: http://www.github.com/leshow/mdt

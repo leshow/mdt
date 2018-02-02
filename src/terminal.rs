@@ -1,10 +1,10 @@
-use escape::{escape_href, escape_html};
-use pulldown_cmark::{Alignment, Event, Tag};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::fmt::Write as FWrite;
 use std::io::{Result, Write};
+
+use escape::{escape_href, escape_html};
+use pulldown_cmark::{Alignment, Event, Tag};
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{FontStyle, Style, ThemeSet};
 use syntect::parsing::SyntaxSet;
@@ -44,10 +44,10 @@ pub struct Terminal<'a, T> {
     syntax_set: SyntaxSet,
     theme_set: ThemeSet,
 }
-// Idea: instead of state variables like 'in_code', Terminal could hold
-// a CodeContext { lang, code } and an active context, we populate the active Context
-// as start/write_buf events happen, when end_tag hits, we should have a fully populated
-// CodeContext or what have you, and we must only write! it.
+// TODO: instead of state variables like 'in_code', Terminal could hold
+// a Code { lang, code } and an active context, we populate the context
+// as start/write_buf events happen, when end_tag hits, we should have a fully
+// populated context or what have you, and we must only write! it.
 
 impl<'a, T> Default for Terminal<'a, T>
 where
@@ -347,12 +347,12 @@ where
         let mut h = HighlightLines::new(syntax, ts);
         for line in self.code.lines() {
             let regions: Vec<(Style, &str)> = h.highlight(&line);
-            // write_as_ansi(buf, &regions)?;
-            write!(
-                buf,
-                "  {}\n",
-                as_24_bit_terminal_escaped(&regions[..], false)
-            )?;
+            if self.truecolor {
+                as_24_bit_terminal_escaped(buf, &regions[..], false)?;
+            } else {
+                write_as_ansi(buf, &regions)?;
+            }
+            write!(buf, "\n")?;
         }
         // Clear the formatting
         write!(buf, "\x1b[0m")?;
@@ -362,11 +362,7 @@ where
 
     fn write_buf<W: Write>(&mut self, buf: &mut W, text: Cow<'a, str>) -> Result<()> {
         if self.in_code {
-            if self.truecolor {
-                self.code.push_str(&text);
-            } else {
-                write!(buf, "   {}", text)?;
-            }
+            self.code.push_str(&text);
         } else if self.in_table {
             self.table.push(text);
         } else {
@@ -376,30 +372,29 @@ where
     }
 }
 
-fn fresh_line(buf: &mut impl Write) -> Result<()> {
+fn fresh_line<W: Write>(buf: &mut W) -> Result<()> {
     write!(buf, "\n")?;
     Ok(())
 }
 
-fn as_24_bit_terminal_escaped(v: &[(Style, &str)], bg: bool) -> String {
-    let mut res = String::new();
+fn as_24_bit_terminal_escaped<W: Write>(w: &mut W, v: &[(Style, &str)], bg: bool) -> Result<()> {
     for &(ref style, text) in v.iter() {
         if bg {
             write!(
-                res,
+                w,
                 "\x1b[48;2;{};{};{}m",
                 style.background.r, style.background.g, style.background.b
-            ).unwrap();
+            )?;
         }
         write!(
-            res,
+            w,
             "\x1b[38;2;{};{};{}m{}",
             style.foreground.r, style.foreground.g, style.foreground.b, text
-        ).unwrap();
+        )?;
     }
-    write!(res, "\x1b[0m").unwrap();
+    write!(w, "\x1b[0m")?;
 
-    res
+    Ok(())
 }
 
 fn write_as_ansi<W: Write>(w: &mut W, regions: &[(Style, &str)]) -> Result<()> {
@@ -422,7 +417,7 @@ fn write_as_ansi<W: Write>(w: &mut W, regions: &[(Style, &str)]) -> Result<()> {
             (0xcb, 0x4b, 0x16) => write!(w, "{}", color::Fg(color::LightRed))?, // orange
             (0xdc, 0x32, 0x2f) => write!(w, "{}", color::Fg(color::Red))?,    // red
             (0xd3, 0x36, 0x82) => write!(w, "{}", color::Fg(color::Magenta))?, // magenta
-            (0x6c, 0x71, 0xc4) => write!(w, "{}", color::Fg(color::LightMagenta))?, // violet
+            (0x6c, 0x71, 0xc4) => write!(w, "{}", color::Fg(color::LightMagenta))?, /* violet */
             (0x26, 0x8b, 0xd2) => write!(w, "{}", color::Fg(color::Blue))?,   // blue
             (0x2a, 0xa1, 0x98) => write!(w, "{}", color::Fg(color::Cyan))?,   // cyan
             (0x85, 0x99, 0x00) => write!(w, "{}", color::Fg(color::Green))?,  // green
