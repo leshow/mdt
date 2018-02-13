@@ -1,4 +1,5 @@
 extern crate getopts;
+extern crate image;
 #[macro_use]
 extern crate lazy_static;
 extern crate pulldown_cmark;
@@ -16,6 +17,7 @@ use std::io::{self, Read};
 
 mod escape;
 pub mod table;
+mod img;
 pub mod terminal;
 use terminal::{MDParser, TermAscii};
 
@@ -77,6 +79,7 @@ fn print_usage(program: &str, opts: GetOpts) {
 pub enum MarkdownError {
     Io(io::Error),
     Args(getopts::Fail),
+    Img(image::ImageError),
 }
 
 pub type MDResult<T> = Result<T, MarkdownError>;
@@ -91,12 +94,18 @@ impl From<getopts::Fail> for MarkdownError {
         Args(e)
     }
 }
+impl From<image::ImageError> for MarkdownError {
+    fn from(e: image::ImageError) -> MarkdownError {
+        Img(e)
+    }
+}
 
 impl fmt::Display for MarkdownError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Io(ref e) => write!(f, "IO Error: {}", e),
             Args(ref e) => write!(f, "Arg Parse Error: {}", e),
+            Img(ref e) => write!(f, "Image Error: {}", e),
         }
     }
 }
@@ -106,6 +115,7 @@ impl Error for MarkdownError {
         match *self {
             Io(ref e) => e.description(),
             Args(ref e) => e.description(),
+            Img(ref e) => e.description(),
         }
     }
     fn cause(&self) -> Option<&Error> {
