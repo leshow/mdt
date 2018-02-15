@@ -8,7 +8,7 @@ use pulldown_cmark::{Alignment, Event, Tag};
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{FontStyle, Style, ThemeSet};
 use syntect::parsing::SyntaxSet;
-use table::{AsciiTable, Table, TableState};
+use table::{AsciiTable, Table, TableState, UnicodeTable};
 use termion::color;
 use termion::style;
 
