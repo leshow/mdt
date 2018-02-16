@@ -18,6 +18,7 @@ lazy_static! {
 }
 
 pub type TermAscii<'a> = Terminal<'a, AsciiTable<'a>>;
+pub type TermUnicode<'a> = Terminal<'a, UnicodeTable<'a>>;
 
 pub trait MDParser<'a, I, W>
 where
@@ -93,11 +94,11 @@ where
                     self.decrement();
                     self.end_tag(tag, w)?;
                 }
+                Event::InlineHtml(html) | Event::Html(html) => self.write_buf(w, html)?,
                 Event::Text(text) => self.write_buf(w, text)?,
                 Event::SoftBreak => self.soft_break(),
                 Event::HardBreak => self.hard_break(),
                 Event::FootnoteReference(name) => self.write_buf(w, name)?,
-                _ => panic!("html and inline html converted to text, this is unreachable"),
             }
         }
 

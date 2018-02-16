@@ -13,13 +13,14 @@ use pulldown_cmark::{Event, Options, Parser, OPTION_ENABLE_FOOTNOTES, OPTION_ENA
 use std::env;
 use std::error::Error;
 use std::fmt;
-use std::io::{self, Read};
+use std::io::{self, Read, Stdout};
+use std::iter::Map;
 
 mod escape;
 pub mod table;
 mod img;
 pub mod terminal;
-use terminal::{MDParser, TermAscii};
+use terminal::{MDParser, TermAscii, TermUnicode};
 
 fn main() {
     if let Err(e) = run() {
@@ -38,6 +39,7 @@ fn run() -> MDResult<()> {
         "truecolor",
         "print with truecolor (syntax highlighting)",
     );
+    opts.optflag("a", "ascii", "print table using ascii characters");
     opts.optflag("h", "help", "print this help menu");
     let matches = opts.parse(&args[1..])?;
     if matches.opt_present("h") {
@@ -56,15 +58,22 @@ fn run() -> MDResult<()> {
     opts.insert(OPTION_ENABLE_FOOTNOTES);
 
     // make parser
-    let p = Parser::new_ext(&buffer, opts).map(|event| match event {
-        Event::InlineHtml(html) | Event::Html(html) => Event::Text(html),
-        _ => event,
-    });
+    let p = Parser::new_ext(&buffer, opts);
     let term_size = termion::terminal_size()?;
 
-    let mut terminal = TermAscii::new(term_size, truecolor);
-    // write to stdout
-    terminal.parse(p, &mut io::stdout())?;
+    // dynamic dispatch
+    // let mut terminal: Box<MDParser<Parser, Stdout>> = if
+    // matches.opt_present("a") { Box::new(TermAscii::new(term_size,
+    // truecolor)) } else {
+    //     Box::new(TermUnicode::new(term_size, truecolor))
+    // };
+    if matches.opt_present("a") {
+        let mut terminal = TermAscii::new(term_size, truecolor);
+        terminal.parse(p, &mut io::stdout())?;
+    } else {
+        let mut terminal = TermUnicode::new(term_size, truecolor);
+        terminal.parse(p, &mut io::stdout())?;
+    };
 
     Ok(())
 }

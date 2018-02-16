@@ -222,9 +222,9 @@ impl_table!(UnicodeTable);
 
 impl<'a> Table<'a> for UnicodeTable<'a> {
     const F_INNER_HORIZONTAL: &'static str = "─";
-    const F_INNER_INTERSECT: &'static str = "+";
-    const F_OUTER_LEFT_INTERSECT: &'static str = "+";
-    const F_OUTER_RIGHT_INTERSECT: &'static str = "+";
+    const F_INNER_INTERSECT: &'static str = "┴";
+    const F_OUTER_LEFT_INTERSECT: &'static str = "└";
+    const F_OUTER_RIGHT_INTERSECT: &'static str = "┘";
     const H_INNER_VERTICAL: &'static str = "│";
     const H_OUTER_LEFT_VERTICAL: &'static str = "│";
     const H_OUTER_RIGHT_VERTICAL: &'static str = "│";
@@ -232,12 +232,12 @@ impl<'a> Table<'a> for UnicodeTable<'a> {
     const INNER_VERTICAL: &'static str = "│";
     const OUTER_BOTTOM_HORIZONTAL: &'static str = "─";
     const OUTER_BOTTOM_INTERSECT: &'static str = "┼";
-    const OUTER_BOTTOM_LEFT: &'static str = "+";
-    const OUTER_BOTTOM_RIGHT: &'static str = "├";
+    const OUTER_BOTTOM_LEFT: &'static str = "├";
+    const OUTER_BOTTOM_RIGHT: &'static str = "┤";
     const OUTER_TOP_HORIZONTAL: &'static str = "─";
     const OUTER_TOP_INTERSECT: &'static str = "┬";
     const OUTER_TOP_LEFT: &'static str = "┌";
-    const OUTER_TOP_RIGHT: &'static str = " ┐";
+    const OUTER_TOP_RIGHT: &'static str = "┐";
 
     const INNER_INTERSECT: &'static str = "┼";
     fn new() -> Self {
