@@ -13,28 +13,28 @@ pub trait TableFns<'a> {
 }
 
 pub trait Table<'a>: TableFns<'a> {
-    const F_INNER_HORIZONTAL: &'static str;
-    const F_INNER_INTERSECT: &'static str;
-    const F_OUTER_LEFT_INTERSECT: &'static str;
-    const F_OUTER_RIGHT_INTERSECT: &'static str;
-    const H_INNER_VERTICAL: &'static str;
-    const H_OUTER_LEFT_VERTICAL: &'static str;
-    const H_OUTER_RIGHT_VERTICAL: &'static str;
-    const INNER_HORIZONTAL: &'static str;
-    const INNER_INTERSECT: &'static str;
-    const INNER_VERTICAL: &'static str;
-    const OUTER_BOTTOM_HORIZONTAL: &'static str;
-    const OUTER_BOTTOM_INTERSECT: &'static str;
-    const OUTER_BOTTOM_LEFT: &'static str;
-    const OUTER_BOTTOM_RIGHT: &'static str;
-    const OUTER_TOP_HORIZONTAL: &'static str;
-    const OUTER_TOP_INTERSECT: &'static str;
-    const OUTER_TOP_LEFT: &'static str;
-    const OUTER_TOP_RIGHT: &'static str;
+    const F_INNER_HORIZONTAL: char;
+    const F_INNER_INTERSECT: char;
+    const F_OUTER_LEFT_INTERSECT: char;
+    const F_OUTER_RIGHT_INTERSECT: char;
+    const H_INNER_VERTICAL: char;
+    const H_OUTER_LEFT_VERTICAL: char;
+    const H_OUTER_RIGHT_VERTICAL: char;
+    const INNER_HORIZONTAL: char;
+    const INNER_INTERSECT: char;
+    const INNER_VERTICAL: char;
+    const OUTER_BOTTOM_HORIZONTAL: char;
+    const OUTER_BOTTOM_INTERSECT: char;
+    const OUTER_BOTTOM_LEFT: char;
+    const OUTER_BOTTOM_RIGHT: char;
+    const OUTER_TOP_HORIZONTAL: char;
+    const OUTER_TOP_INTERSECT: char;
+    const OUTER_TOP_LEFT: char;
+    const OUTER_TOP_RIGHT: char;
 
     fn new() -> Self;
     fn draw<W: Write>(&mut self, w: &mut W) -> Result<()> {
-        let char_row = |left: &str, hor: &str, intr: &str, right: &str, w: &mut W| -> Result<()> {
+        let char_row = |left: char, hor: char, intr: char, right: char, w: &mut W| -> Result<()> {
             write!(w, "{}", left)?;
             for col in 0..self.index() - 1 {
                 let width = self.table()[col].len();
@@ -175,24 +175,24 @@ pub struct AsciiTable<'a> {
 impl_table!(AsciiTable);
 
 impl<'a> Table<'a> for AsciiTable<'a> {
-    const F_INNER_HORIZONTAL: &'static str = "-";
-    const F_INNER_INTERSECT: &'static str = "┴";
-    const F_OUTER_LEFT_INTERSECT: &'static str = "└";
-    const F_OUTER_RIGHT_INTERSECT: &'static str = "┘";
-    const H_INNER_VERTICAL: &'static str = "|";
-    const H_OUTER_LEFT_VERTICAL: &'static str = "|";
-    const H_OUTER_RIGHT_VERTICAL: &'static str = "|";
-    const INNER_HORIZONTAL: &'static str = "-";
-    const INNER_INTERSECT: &'static str = "+";
-    const INNER_VERTICAL: &'static str = "|";
-    const OUTER_BOTTOM_HORIZONTAL: &'static str = "-";
-    const OUTER_BOTTOM_INTERSECT: &'static str = "+";
-    const OUTER_BOTTOM_LEFT: &'static str = "+";
-    const OUTER_BOTTOM_RIGHT: &'static str = "+";
-    const OUTER_TOP_HORIZONTAL: &'static str = "-";
-    const OUTER_TOP_INTERSECT: &'static str = "+";
-    const OUTER_TOP_LEFT: &'static str = "+";
-    const OUTER_TOP_RIGHT: &'static str = "+";
+    const F_INNER_HORIZONTAL: char = '-';
+    const F_INNER_INTERSECT: char = '┴';
+    const F_OUTER_LEFT_INTERSECT: char = '└';
+    const F_OUTER_RIGHT_INTERSECT: char = '┘';
+    const H_INNER_VERTICAL: char = '|';
+    const H_OUTER_LEFT_VERTICAL: char = '|';
+    const H_OUTER_RIGHT_VERTICAL: char = '|';
+    const INNER_HORIZONTAL: char = '-';
+    const INNER_INTERSECT: char = '+';
+    const INNER_VERTICAL: char = '|';
+    const OUTER_BOTTOM_HORIZONTAL: char = '-';
+    const OUTER_BOTTOM_INTERSECT: char = '+';
+    const OUTER_BOTTOM_LEFT: char = '+';
+    const OUTER_BOTTOM_RIGHT: char = '+';
+    const OUTER_TOP_HORIZONTAL: char = '-';
+    const OUTER_TOP_INTERSECT: char = '+';
+    const OUTER_TOP_LEFT: char = '+';
+    const OUTER_TOP_RIGHT: char = '+';
 
     fn new() -> Self {
         AsciiTable::default()
@@ -221,25 +221,25 @@ pub struct UnicodeTable<'a> {
 impl_table!(UnicodeTable);
 
 impl<'a> Table<'a> for UnicodeTable<'a> {
-    const F_INNER_HORIZONTAL: &'static str = "─";
-    const F_INNER_INTERSECT: &'static str = "┴";
-    const F_OUTER_LEFT_INTERSECT: &'static str = "└";
-    const F_OUTER_RIGHT_INTERSECT: &'static str = "┘";
-    const H_INNER_VERTICAL: &'static str = "│";
-    const H_OUTER_LEFT_VERTICAL: &'static str = "│";
-    const H_OUTER_RIGHT_VERTICAL: &'static str = "│";
-    const INNER_HORIZONTAL: &'static str = "─";
-    const INNER_VERTICAL: &'static str = "│";
-    const OUTER_BOTTOM_HORIZONTAL: &'static str = "─";
-    const OUTER_BOTTOM_INTERSECT: &'static str = "┼";
-    const OUTER_BOTTOM_LEFT: &'static str = "├";
-    const OUTER_BOTTOM_RIGHT: &'static str = "┤";
-    const OUTER_TOP_HORIZONTAL: &'static str = "─";
-    const OUTER_TOP_INTERSECT: &'static str = "┬";
-    const OUTER_TOP_LEFT: &'static str = "┌";
-    const OUTER_TOP_RIGHT: &'static str = "┐";
+    const F_INNER_HORIZONTAL: char = '─';
+    const F_INNER_INTERSECT: char = '┴';
+    const F_OUTER_LEFT_INTERSECT: char = '└';
+    const F_OUTER_RIGHT_INTERSECT: char = '┘';
+    const H_INNER_VERTICAL: char = '│';
+    const H_OUTER_LEFT_VERTICAL: char = '│';
+    const H_OUTER_RIGHT_VERTICAL: char = '│';
+    const INNER_HORIZONTAL: char = '─';
+    const INNER_VERTICAL: char = '│';
+    const OUTER_BOTTOM_HORIZONTAL: char = '─';
+    const OUTER_BOTTOM_INTERSECT: char = '┼';
+    const OUTER_BOTTOM_LEFT: char = '├';
+    const OUTER_BOTTOM_RIGHT: char = '┤';
+    const OUTER_TOP_HORIZONTAL: char = '─';
+    const OUTER_TOP_INTERSECT: char = '┬';
+    const OUTER_TOP_LEFT: char = '┌';
+    const OUTER_TOP_RIGHT: char = '┐';
 
-    const INNER_INTERSECT: &'static str = "┼";
+    const INNER_INTERSECT: char = '┼';
     fn new() -> Self {
         UnicodeTable::default()
     }
