@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::io::{Result, Write};
 
-use escape::{escape_href, escape_html};
 use pulldown_cmark::{Alignment, Event, Tag};
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{FontStyle, Style, ThemeSet};
@@ -249,13 +248,11 @@ where
                 self.links.push((dest, title));
             }
             Tag::Image(dest, title) => {
-                write!(buf, "<img src=\"")?;
-                escape_href(buf, &dest)?;
+                write!(buf, "<img src=\"{}", &dest)?;
                 write!(buf, "\" alt=\"")?;
                 //self.raw_text(numbers);
                 if !title.is_empty() {
-                    write!(buf, "\" title=\"")?;
-                    escape_html(buf, &title, false)?;
+                    write!(buf, "\" title=\"{}", &title)?;
                 }
                 write!(buf, "\" />")?;
             }

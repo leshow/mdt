@@ -9,14 +9,12 @@ extern crate termion;
 // Any type that derives Fail can be cast into Error
 use self::MarkdownError::*;
 use getopts::Options as GetOpts;
-use pulldown_cmark::{Event, Options, Parser, OPTION_ENABLE_FOOTNOTES, OPTION_ENABLE_TABLES};
+use pulldown_cmark::{Options, Parser, OPTION_ENABLE_FOOTNOTES, OPTION_ENABLE_TABLES};
 use std::env;
 use std::error::Error;
 use std::fmt;
-use std::io::{self, Read, Stdout};
-use std::iter::Map;
+use std::io::{self, Read};
 
-mod escape;
 pub mod table;
 mod img;
 pub mod terminal;
