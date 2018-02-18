@@ -1,5 +1,5 @@
 extern crate getopts;
-extern crate image;
+extern crate immeta;
 #[macro_use]
 extern crate lazy_static;
 extern crate pulldown_cmark;
@@ -86,7 +86,7 @@ fn print_usage(program: &str, opts: GetOpts) {
 pub enum MarkdownError {
     Io(io::Error),
     Args(getopts::Fail),
-    Img(image::ImageError),
+    Img(immeta::Error),
 }
 
 pub type MDResult<T> = Result<T, MarkdownError>;
@@ -101,8 +101,8 @@ impl From<getopts::Fail> for MarkdownError {
         Args(e)
     }
 }
-impl From<image::ImageError> for MarkdownError {
-    fn from(e: image::ImageError) -> MarkdownError {
+impl From<immeta::Error> for MarkdownError {
+    fn from(e: immeta::Error) -> MarkdownError {
         Img(e)
     }
 }
@@ -112,7 +112,7 @@ impl fmt::Display for MarkdownError {
         match *self {
             Io(ref e) => write!(f, "IO Error: {}", e),
             Args(ref e) => write!(f, "Arg Parse Error: {}", e),
-            Img(ref e) => write!(f, "Image Error: {}", e),
+            Img(ref e) => write!(f, "Image Load Error: {}", e),
         }
     }
 }

@@ -1,5 +1,4 @@
-use image::{self, GenericImage};
-
+use immeta;
 use std::convert::AsRef;
 // use std::fs::File;
 // use std::io::BufReader;
@@ -11,7 +10,6 @@ pub fn img_dim<P>(path: P) -> MDResult<(u32, u32)>
 where
     P: AsRef<Path>,
 {
-    // let reader = BufReader::new(File::open(path.as_ref())?);
-    // Ok(image::open(reader)?.dimensions())
-    Ok(image::open(path.as_ref())?.dimensions())
+    let dim = immeta::load_from_file(path.as_ref())?.dimensions();
+    Ok((dim.width, dim.height))
 }

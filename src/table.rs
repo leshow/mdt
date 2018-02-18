@@ -21,7 +21,6 @@ pub trait Table<'a>: TableFns<'a> {
     const H_OUTER_LEFT_VERTICAL: char;
     const H_OUTER_RIGHT_VERTICAL: char;
     const INNER_HORIZONTAL: char;
-    const INNER_INTERSECT: char;
     const INNER_VERTICAL: char;
     const OUTER_BOTTOM_HORIZONTAL: char;
     const OUTER_BOTTOM_INTERSECT: char;
@@ -183,7 +182,6 @@ impl<'a> Table<'a> for AsciiTable<'a> {
     const H_OUTER_LEFT_VERTICAL: char = '|';
     const H_OUTER_RIGHT_VERTICAL: char = '|';
     const INNER_HORIZONTAL: char = '-';
-    const INNER_INTERSECT: char = '+';
     const INNER_VERTICAL: char = '|';
     const OUTER_BOTTOM_HORIZONTAL: char = '-';
     const OUTER_BOTTOM_INTERSECT: char = '+';
@@ -239,7 +237,6 @@ impl<'a> Table<'a> for UnicodeTable<'a> {
     const OUTER_TOP_LEFT: char = '┌';
     const OUTER_TOP_RIGHT: char = '┐';
 
-    const INNER_INTERSECT: char = '┼';
     fn new() -> Self {
         UnicodeTable::default()
     }
