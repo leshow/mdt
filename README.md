@@ -2,6 +2,8 @@
 
 ---
 
+[![Build Status](https://travis-ci.org/leshow/mdt.svg?branch=master)](https://travis-ci.org/leshow/mdt)
+
 _mdt_ is a markdown previewer for the **terminal**. It takes markdown as input from `stdin` and prints it out formatted for easy reading. It should support all CommonMark docs (but won't attempt inner html). There are a few things still not working, and the code could use a refactor, but the main work is done.
 
 It uses [pulldown_cmark](http://www.github.com/google/pulldown-cmark) for parsing markdown.
