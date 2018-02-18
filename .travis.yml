@@ -1,0 +1,30 @@
+sudo: false
+
+language: rust
+
+rust:
+  - 1.23.0
+  - stable
+  - nightly
+
+script:
+  - cargo build --verbose
+  - cargo test --verbose
+  - cargo run -- < README.md
+
+cache: cargo
+
+jobs:
+  include:
+    - stage: format
+      before_install: rustup component add rustfmt-preview
+      script: cargo fmt -- --write-mode=diff
+      rust: beta
+    - stage: lint
+      before_install: cargo install clippy --force
+      script: cargo clippy
+      rust: nightly
+
+stages:
+  - format
+  - lint
