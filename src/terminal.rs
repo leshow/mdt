@@ -48,7 +48,55 @@ pub struct Terminal<'a, T> {
 // a Code { lang, code } and an active context, we populate the context
 // as start/write_buf events happen, when end_tag hits, we should have a fully
 // populated context or what have you, and we must only write! it.
+enum State<T> {
+    Code {
+        code: String,
+        lang: Option<String>,
+    },
+    Table {
+        table_alignments: Vec<Alignment>,
+        table: T,
+    },
+    List {
+        items: usize,
+    },
+    Nil,
+}
 
+impl<T> Default for State<T> {
+    fn default() -> Self {
+        State::Nil
+    }
+}
+
+impl<'a, T> State<T>
+where
+    T: Table<'a>,
+{
+    fn table() -> State<T> {
+        State::Table {
+            table: T::new(),
+            table_alignments: Vec::new(),
+        }
+    }
+    fn code() -> State<T> {
+        State::Code {
+            code: String::new(),
+            lang: None,
+        }
+    }
+    fn list() -> State<T> {
+        State::List { items: 0 }
+    }
+    // fn inc_li(&mut self) {
+    //     match *self {
+    //         State::List { items } => {
+    //             self = State::List { items: items + 1 };
+    //         }
+    //         _ => {}
+    //     }
+    // }
+}
 impl<'a, T> Default for Terminal<'a, T>
 where
     T: Table<'a>,

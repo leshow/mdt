@@ -10,6 +10,12 @@ It uses [pulldown_cmark](http://www.github.com/google/pulldown-cmark) for parsin
 
 ## Usage
 
+**mdt** can take a file name or input from `stdin`. Therefore, the follow all work:
+
+```sh
+$ mdt README.md
+```
+
 ```sh
 $ cat README.md | mdt
 [...]

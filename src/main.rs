@@ -13,6 +13,7 @@ use pulldown_cmark::{Options, Parser, OPTION_ENABLE_FOOTNOTES, OPTION_ENABLE_TAB
 use std::env;
 use std::error::Error;
 use std::fmt;
+use std::fs::File;
 use std::io::{self, Read};
 
 pub mod table;
@@ -47,8 +48,12 @@ fn run() -> MDResult<()> {
     let truecolor = matches.opt_present("t");
 
     // get input
-    let mut buffer = String::new();
-    io::stdin().read_to_string(&mut buffer)?;
+    let mut input = String::new();
+    if matches.free.is_empty() {
+        io::stdin().read_to_string(&mut input)?;
+    } else {
+        File::open(&matches.free[0])?.read_to_string(&mut input)?;
+    }
 
     // parser options
     let mut opts = Options::empty();
@@ -56,7 +61,7 @@ fn run() -> MDResult<()> {
     opts.insert(OPTION_ENABLE_FOOTNOTES);
 
     // make parser
-    let p = Parser::new_ext(&buffer, opts);
+    let p = Parser::new_ext(&input, opts);
     let term_size = termion::terminal_size()?;
 
     // dynamic dispatch
