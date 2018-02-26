@@ -30,24 +30,14 @@ where
 pub struct Terminal<'a, T> {
     indent_lvl: usize,
     term_size: (u16, u16),
-    in_table: bool,
-    table_alignments: Vec<Alignment>,
-    table: T,
     links: Vec<(Cow<'a, str>, Cow<'a, str>)>,
-    ordered: bool,
-    items: usize,
     truecolor: bool,
-    in_code: bool,
-    code: String,
-    lang: Option<String>,
     dontskip: bool,
     syntax_set: SyntaxSet,
     theme_set: ThemeSet,
+    state: State<T>,
 }
-// TODO: instead of state variables like 'in_code', Terminal could hold
-// a Code { lang, code } and an active context, we populate the context
-// as start/write_buf events happen, when end_tag hits, we should have a fully
-// populated context or what have you, and we must only write! it.
+
 enum State<T> {
     Code {
         code: String,
@@ -57,7 +47,8 @@ enum State<T> {
         table_alignments: Vec<Alignment>,
         table: T,
     },
-    List {
+    Li,
+    Ol {
         items: usize,
     },
     Nil,
@@ -73,51 +64,87 @@ impl<'a, T> State<T>
 where
     T: Table<'a>,
 {
-    fn table() -> State<T> {
+    fn table(table_alignments: Vec<Alignment>) -> State<T> {
         State::Table {
             table: T::new(),
-            table_alignments: Vec::new(),
+            table_alignments,
         }
     }
-    fn code() -> State<T> {
+    fn set_table_state(&mut self, table_state: TableState) {
+        match *self {
+            State::Table { ref mut table, .. } => table.set_table_state(table_state),
+            _ => {}
+        }
+    }
+    fn table_draw<W: Write>(&mut self, buf: &mut W) -> Result<()> {
+        match *self {
+            State::Table { ref mut table, .. } => table.draw(buf)?,
+            _ => {}
+        }
+        Ok(())
+    }
+    fn table_inc_index(&mut self) {
+        match *self {
+            State::Table { ref mut table, .. } => table.inc_index(),
+            _ => {}
+        }
+    }
+    fn set_table_index(&mut self, idx: usize) {
+        match *self {
+            State::Table { ref mut table, .. } => table.set_index(idx),
+            _ => {}
+        }
+    }
+    fn code(lang: Option<String>) -> State<T> {
         State::Code {
             code: String::new(),
-            lang: None,
+            lang,
         }
     }
-    fn list() -> State<T> {
-        State::List { items: 0 }
+    fn write_buf<W: Write>(&mut self, buf: &mut W, text: Cow<'a, str>) -> Result<()> {
+        match *self {
+            State::Code { ref mut code, .. } => code.push_str(&text),
+            State::Table { ref mut table, .. } => table.push(text),
+            _ => write!(buf, "{}", text)?,
+        }
+        Ok(())
     }
-    // fn inc_li(&mut self) {
-    //     match *self {
-    //         State::List { items } => {
-    //             self = State::List { items: items + 1 };
-    //         }
-    //         _ => {}
-    //     }
-    // }
+
+    fn li() -> State<T> {
+        State::Li
+    }
+    fn ol(start: usize) -> State<T> {
+        State::Ol { items: start }
+    }
+    fn inc_li<W: Write>(&mut self, buf: &mut W) -> Result<()> {
+        match *self {
+            State::Ol { ref mut items } => {
+                *items = *items + 1;
+                write!(buf, " {}", &(items.to_string() + ". "))?;
+            }
+            _ => {
+                write!(buf, "{} * ", color::Fg(color::Red))?;
+                write!(buf, "{}", *RESET_COLOR)?;
+            }
+        };
+        Ok(())
+    }
 }
+
 impl<'a, T> Default for Terminal<'a, T>
 where
     T: Table<'a>,
 {
     fn default() -> Self {
         Terminal {
-            table: T::new(),
-            in_table: false,
-            table_alignments: Vec::new(),
-            in_code: false,
-            lang: None,
             dontskip: false,
-            ordered: false,
-            items: 0,
-            code: String::new(),
             indent_lvl: 0,
             term_size: (100, 100),
             links: Vec::new(),
             truecolor: false,
             syntax_set: SyntaxSet::load_defaults_newlines(),
             theme_set: ThemeSet::load_defaults(),
+            state: State::Nil,
         }
     }
 }
@@ -141,11 +168,11 @@ where
                     self.decrement();
                     self.end_tag(tag, w)?;
                 }
-                Event::InlineHtml(html) | Event::Html(html) => self.write_buf(w, html)?,
-                Event::Text(text) => self.write_buf(w, text)?,
+                Event::InlineHtml(html) | Event::Html(html) => self.state.write_buf(w, html)?,
+                Event::Text(text) => self.state.write_buf(w, text)?,
                 Event::SoftBreak => self.soft_break(),
                 Event::HardBreak => self.hard_break(),
-                Event::FootnoteReference(name) => self.write_buf(w, name)?,
+                Event::FootnoteReference(name) => self.state.write_buf(w, name)?,
             }
         }
 
@@ -186,10 +213,6 @@ where
         self.term_size.0 as usize
     }
 
-    fn inc_li(&mut self) {
-        self.items = self.items + 1;
-    }
-
     fn start_tag<W: Write>(
         &mut self,
         tag: Tag<'a>,
@@ -218,15 +241,14 @@ where
                 )?;
             }
             Tag::Table(alignments) => {
-                self.table_alignments = alignments;
-                self.in_table = true;
                 fresh_line(buf)?;
+                self.state = State::table(alignments);
             }
             Tag::TableHead => {
-                self.table.set_table_state(TableState::Head);
+                self.state.set_table_state(TableState::Head);
             }
             Tag::TableRow => {
-                self.table.set_index(0);
+                self.state.set_table_index(0);
             }
             Tag::TableCell => {
                 // write!(
@@ -252,35 +274,26 @@ where
             }
             Tag::CodeBlock(info) => {
                 fresh_line(buf)?;
-                self.lang = info.split(' ').next().map(String::from);
-                self.in_code = true;
+                self.state = State::code(info.split(' ').next().map(String::from));
             }
             Tag::List(Some(1)) => {
                 fresh_line(buf)?;
                 // <ol>
-                self.ordered = true;
-                self.items = 0;
+                self.state = State::ol(0);
             }
             Tag::List(Some(start)) => {
                 fresh_line(buf)?;
                 // <ol start=start>
-                self.ordered = true;
-                self.items = start;
+                self.state = State::ol(start);
             }
             Tag::List(None) => {
                 // UL
                 fresh_line(buf)?;
-                self.ordered = false;
+                self.state = State::li();
             }
             Tag::Item => {
                 fresh_line(buf)?;
-                if self.ordered {
-                    self.inc_li();
-                    write!(buf, " {}", &(self.items.to_string() + ". "))?;
-                } else {
-                    write!(buf, "{} * ", color::Fg(color::Red))?;
-                    write!(buf, "{}", *RESET_COLOR)?;
-                }
+                self.state.inc_li(buf)?;
             }
             Tag::Emphasis => {
                 write!(buf, "{}", style::Italic)?;
@@ -326,28 +339,27 @@ where
             Tag::Paragraph => fresh_line(buf)?,
             Tag::Rule => (),
             Tag::Header(_) => {
-                fresh_line(buf)?;
-                write!(buf, "{}", *RESET_COLOR)?;
+                write!(buf, "{}\n", *RESET_COLOR)?;
             }
             Tag::Table(_) => {
-                self.in_table = false;
-                self.table.draw(buf)?;
+                // self.in_table = false;
+                self.state.table_draw(buf)?;
+                self.state = State::default();
             }
             Tag::TableHead => {
-                self.table.set_table_state(TableState::Body);
+                self.state.set_table_state(TableState::Body);
             }
             Tag::TableRow => {}
             Tag::TableCell => {
-                self.table.inc_index();
+                self.state.table_inc_index();
             }
             Tag::BlockQuote => {
                 write!(buf, "{}", *RESET_COLOR)?;
             }
             Tag::CodeBlock(_) => {
-                self.in_code = false;
                 self.write_code(buf)?;
-                write!(buf, "{}", *RESET_COLOR)?;
-                fresh_line(buf)?;
+                self.state = State::default();
+                write!(buf, "{}\n", *RESET_COLOR)?;
             }
             Tag::List(Some(_)) => fresh_line(buf)?, // ol
             Tag::List(None) => fresh_line(buf)?,
@@ -365,7 +377,7 @@ where
             Tag::Link(_, _) => {
                 write!(buf, "{}", *RESET_STYLE)?;
                 let num = self.links.len().to_string();
-                let l = String::from("[") + &num + "]";
+                let l = "[".to_string() + &num + "]";
                 write!(buf, "{}", &l)?;
             }
             Tag::Image(_, _) => (), // shouldn't happen, handled in start
@@ -381,38 +393,34 @@ where
     fn hard_break(&mut self) {}
 
     fn write_code<W: Write>(&mut self, buf: &mut W) -> Result<()> {
-        let ts = &self.theme_set.themes["Solarized (dark)"];
-        let ps = &self.syntax_set;
+        match self.state {
+            State::Code {
+                ref mut code,
+                ref mut lang,
+            } => {
+                let ts = &self.theme_set.themes["Solarized (dark)"];
+                let ps = &self.syntax_set;
 
-        let syntax = if let Some(ref lang) = self.lang {
-            ps.find_syntax_by_token(lang)
-        } else {
-            ps.find_syntax_by_first_line(&self.code)
-        }.unwrap_or_else(|| ps.find_syntax_plain_text());
+                let syntax = if let Some(ref lang) = *lang {
+                    ps.find_syntax_by_token(lang)
+                } else {
+                    ps.find_syntax_by_first_line(&code)
+                }.unwrap_or_else(|| ps.find_syntax_plain_text());
 
-        let mut h = HighlightLines::new(syntax, ts);
-        for line in self.code.lines() {
-            let regions: Vec<(Style, &str)> = h.highlight(&line);
-            if self.truecolor {
-                as_24_bit_terminal_escaped(buf, &regions[..], false)?;
-            } else {
-                write_as_ansi(buf, &regions)?;
+                let mut h = HighlightLines::new(syntax, ts);
+                for line in code.lines() {
+                    let regions: Vec<(Style, &str)> = h.highlight(&line);
+                    if self.truecolor {
+                        as_24_bit_terminal_escaped(buf, &regions[..], false)?;
+                    } else {
+                        write_as_ansi(buf, &regions)?;
+                    }
+                    write!(buf, "\n")?;
+                }
+                // Clear the formatting
+                write!(buf, "\x1b[0m")?;
             }
-            write!(buf, "\n")?;
-        }
-        // Clear the formatting
-        write!(buf, "\x1b[0m")?;
-        self.code = String::new();
-        Ok(())
-    }
-
-    fn write_buf<W: Write>(&mut self, buf: &mut W, text: Cow<'a, str>) -> Result<()> {
-        if self.in_code {
-            self.code.push_str(&text);
-        } else if self.in_table {
-            self.table.push(text);
-        } else {
-            write!(buf, "{}", text)?;
+            _ => {}
         }
         Ok(())
     }
