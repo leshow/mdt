@@ -23,7 +23,7 @@ use terminal::{MDParser, TermAscii, TermStyle, TermUnicode};
 
 fn main() {
     if let Err(e) = run() {
-        println!("{:?}", e);
+        println!("Error countered-- {:?}", e);
     }
 }
 
@@ -113,11 +113,13 @@ impl From<io::Error> for MarkdownError {
         Io(e)
     }
 }
+
 impl From<getopts::Fail> for MarkdownError {
     fn from(e: getopts::Fail) -> MarkdownError {
         Args(e)
     }
 }
+
 impl From<immeta::Error> for MarkdownError {
     fn from(e: immeta::Error) -> MarkdownError {
         Img(e)
