@@ -266,9 +266,9 @@ where
                 fresh_line(buf)?;
                 write!(
                     buf,
-                    "{}{}",
+                    "{}{}> ",
                     color::Fg(color::Green),
-                    "   ".repeat(self.indent_lvl) + "> "
+                    "   ".repeat(self.indent_lvl)
                 )?;
                 self.dontskip = true;
             }
