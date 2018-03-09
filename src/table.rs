@@ -4,6 +4,8 @@ use std::iter;
 
 pub trait TableFns<'a> {
     fn set_table_state(&mut self, state: TableState);
+    fn set_width(&mut self, w: usize);
+    fn width(&self) -> usize;
     fn table_state(&self) -> TableState;
     fn inc_col(&mut self);
     fn inc_index(&mut self);
@@ -31,8 +33,17 @@ pub trait Table<'a>: TableFns<'a> {
     const OUTER_TOP_LEFT: char;
     const OUTER_TOP_RIGHT: char;
 
-    fn new() -> Self;
+    fn new(width: usize) -> Self;
+
     fn draw<W: Write>(&mut self, w: &mut W) -> Result<()> {
+        // let total_width: usize = self.table()[0..self.index() - 1]
+        //     .iter()
+        //     .map(|x| x.len())
+        //     .sum();
+        // if total_width > self.width() {
+        //     let avg = total_width / self.width();
+        // }
+
         let char_row = |left: char, hor: char, intr: char, right: char, w: &mut W| -> Result<()> {
             write!(w, "{}", left)?;
             for col in 0..self.index() - 1 {
@@ -68,6 +79,7 @@ pub trait Table<'a>: TableFns<'a> {
         for col in 0..self.index() - 1 {
             write!(w, "{}{}", self.table()[col], Self::H_INNER_VERTICAL)?;
         }
+
         write!(
             w,
             "{}{}\n",
@@ -157,6 +169,14 @@ macro_rules! impl_table {
             fn set_index(&mut self, idx: usize) {
                 self.table_cell_index = idx;
             }
+
+            fn set_width(&mut self, w: usize) {
+                self.width = w;
+            }
+
+            fn width(&self) -> usize {
+                self.width
+            }
         }
     )
 }
@@ -169,6 +189,7 @@ pub struct AsciiTable<'a> {
     col_count: usize,
     // table_alignments: Vec<Alignment>,
     table_cell_index: usize,
+    width: usize,
 }
 
 impl_table!(AsciiTable);
@@ -192,8 +213,11 @@ impl<'a> Table<'a> for AsciiTable<'a> {
     const OUTER_TOP_LEFT: char = '+';
     const OUTER_TOP_RIGHT: char = '+';
 
-    fn new() -> Self {
-        AsciiTable::default()
+    fn new(width: usize) -> Self {
+        AsciiTable {
+            width,
+            ..AsciiTable::default()
+        }
     }
 
     fn push(&mut self, item: Cow<'a, str>) {
@@ -214,6 +238,7 @@ pub struct UnicodeTable<'a> {
     table_state: TableState,
     col_count: usize,
     table_cell_index: usize,
+    width: usize,
 }
 
 impl_table!(UnicodeTable);
@@ -237,8 +262,11 @@ impl<'a> Table<'a> for UnicodeTable<'a> {
     const OUTER_TOP_LEFT: char = '┌';
     const OUTER_TOP_RIGHT: char = '┐';
 
-    fn new() -> Self {
-        UnicodeTable::default()
+    fn new(width: usize) -> Self {
+        UnicodeTable {
+            width,
+            ..UnicodeTable::default()
+        }
     }
 
     fn push(&mut self, item: Cow<'a, str>) {

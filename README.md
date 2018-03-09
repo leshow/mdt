@@ -32,17 +32,17 @@ If you have a terminal that supports truecolor (24-bit color), you can pass a fl
 
 ### Supported Markdown Features
 
-1. paragraph
-1. rule
-1. headers
-1. lists (ordered and unordered)
-1. bold
-1. italic
-1. footnotes
-1. links
-1. tables (ascii tables only for now)
+1.  paragraph
+1.  rule
+1.  headers
+1.  lists (ordered and unordered)
+1.  bold
+1.  italic
+1.  footnotes
+1.  links
+1.  tables (ascii+unicode-- although word wrap doesn't work quite right)
 
 Not working:
 
-1. Images
-1. Inline html (not planned)
+1.  Images
+1.  Inline html (not planned)

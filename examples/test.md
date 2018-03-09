@@ -24,20 +24,20 @@ If you have a terminal that supports truecolor (24-bit color), you can pass a fl
 
 ### Supported Markdown Features
 
-1. paragraph
-1. rule
-1. headers
-1. lists (ordered and unordered)
-1. bold
-1. italic
-1. footnotes
-1. links
-1. tables (ascii tables only for now)
+1.  paragraph
+1.  rule
+1.  headers
+1.  lists (ordered and unordered)
+1.  bold
+1.  italic
+1.  footnotes
+1.  links
+1.  tables (ascii tables only for now)
 
 Not working:
 
-1. Images
-1. Inline html (not planned)
+1.  Images
+1.  Inline html (not planned)
 
 #### TEST SECTION (ignore below)
 
@@ -73,19 +73,19 @@ fn highlight_lines(&self, s: &str, buf: &mut String) {
 
 Tables:
 
-| Feature     | Working | Other |
-| ----------- | ------- | ----- |
-| paragraphs  | done    | foo   |
-| rule        | done    | foo   |
-| headers     | done    | foo   |
-| lists       | done    | foo   |
-| bold        | done    | foo   |
-| italic      | done    | foo   |
-| footnotes   | done    | fooo  |
-| links       | done    | foo   |
-| tables      | done    | fooo  |
-| images      | :poop:  | foo   |
-| inline html | :poop:  | foo   |
+| Feature     | Working                                                             | Other |
+| ----------- | ------------------------------------------------------------------- | ----- |
+| paragraphs  | foo other stuff that will run on and on and on and on and on and on | foo   |
+| rule        | done                                                                | foo   |
+| headers     | done                                                                | foo   |
+| lists       | done                                                                | foo   |
+| bold        | done                                                                | foo   |
+| italic      | done                                                                | foo   |
+| footnotes   | done                                                                | fooo  |
+| links       | done                                                                | foo   |
+| tables      | done                                                                | fooo  |
+| images      | :poop:                                                              | foo   |
+| inline html | :poop:                                                              | foo   |
 
 Unordered List:
 

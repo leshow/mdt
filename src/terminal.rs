@@ -64,9 +64,9 @@ impl<'a, T> State<T>
 where
     T: Table<'a>,
 {
-    fn table(table_alignments: Vec<Alignment>) -> State<T> {
+    fn table(table_alignments: Vec<Alignment>, width: usize) -> State<T> {
         State::Table {
-            table: T::new(),
+            table: T::new(width),
             table_alignments,
         }
     }
@@ -242,7 +242,7 @@ where
             }
             Tag::Table(alignments) => {
                 fresh_line(buf)?;
-                self.state = State::table(alignments);
+                self.state = State::table(alignments, self.width());
             }
             Tag::TableHead => {
                 self.state.set_table_state(TableState::Head);
