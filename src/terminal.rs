@@ -41,8 +41,8 @@ where
 {
     fn parse(&mut self, iter: I, w: &mut W) -> Result<()> {
         match self {
-            TermStyle::Ascii(ref mut t) => t.parse(iter, w),
-            TermStyle::Unicode(ref mut t) => t.parse(iter, w),
+            &mut TermStyle::Ascii(ref mut t) => t.parse(iter, w),
+            &mut TermStyle::Unicode(ref mut t) => t.parse(iter, w),
         }
     }
 }
