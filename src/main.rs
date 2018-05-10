@@ -1,5 +1,3 @@
-#![feature(conservative_impl_trait)]
-
 extern crate getopts;
 extern crate immeta;
 #[macro_use]
