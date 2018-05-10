@@ -1,3 +1,5 @@
+#![feature(conservative_impl_trait)]
+
 extern crate getopts;
 extern crate immeta;
 #[macro_use]
@@ -14,12 +16,12 @@ use std::env;
 use std::error::Error;
 use std::fmt;
 use std::fs::File;
-use std::io::{self, Read};
+use std::io::{self, Read, Stdout};
 
-pub mod table;
 mod img;
+pub mod table;
 pub mod terminal;
-use terminal::{MDParser, TermAscii, TermUnicode};
+use terminal::{MDParser, TermAscii, TermStyle, TermUnicode};
 
 fn main() {
     if let Err(e) = run() {
@@ -45,7 +47,6 @@ fn run() -> MDResult<()> {
         print_usage(&program, opts);
         return Ok(());
     }
-    let truecolor = matches.opt_present("t");
 
     // get input
     let mut input = String::new();
@@ -62,21 +63,24 @@ fn run() -> MDResult<()> {
 
     // make parser
     let p = Parser::new_ext(&input, opts);
-    let term_size = termion::terminal_size()?;
-
     // dynamic dispatch
     // let mut terminal: Box<MDParser<Parser, Stdout>> = if
     // matches.opt_present("a") { Box::new(TermAscii::new(term_size,
     // truecolor)) } else {
     //     Box::new(TermUnicode::new(term_size, truecolor))
     // };
-    if matches.opt_present("a") {
-        let mut terminal = TermAscii::new(term_size, truecolor);
-        terminal.parse(p, &mut io::stdout())?;
-    } else {
-        let mut terminal = TermUnicode::new(term_size, truecolor);
-        terminal.parse(p, &mut io::stdout())?;
-    };
+
+    let term_size = termion::terminal_size()?;
+    let mut terminal = make_parser(&matches, term_size);
+    terminal.parse(p, &mut io::stdout())?;
+
+    // if matches.opt_present("a") {
+    //     let mut terminal = TermAscii::new(term_size, truecolor);
+    //     terminal.parse(p, &mut io::stdout())?;
+    // } else {
+    //     let mut terminal = TermUnicode::new(term_size, truecolor);
+    //     terminal.parse(p, &mut io::stdout())?;
+    // };
 
     Ok(())
 }
@@ -84,6 +88,16 @@ fn run() -> MDResult<()> {
 fn print_usage(program: &str, opts: GetOpts) {
     let brief = format!("Usage: {} FILE [options]", program);
     print!("{}", opts.usage(&brief));
+}
+
+// I'm not convinced this is worthwhile over the aliases
+fn make_parser(matches: &getopts::Matches, term_size: (u16, u16)) -> TermStyle {
+    let truecolor = matches.opt_present("t");
+    if matches.opt_present("a") {
+        TermStyle::ascii(term_size, truecolor)
+    } else {
+        TermStyle::unicode(term_size, truecolor)
+    }
 }
 
 // Error
