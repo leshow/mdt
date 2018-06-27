@@ -10,11 +10,9 @@ extern crate termion;
 use self::MarkdownError::*;
 use getopts::Options as GetOpts;
 use pulldown_cmark::{Options, Parser, OPTION_ENABLE_FOOTNOTES, OPTION_ENABLE_TABLES};
-use std::env;
-use std::error::Error;
-use std::fmt;
-use std::fs::File;
-use std::io::{self, Read, Stdout};
+use std::{
+    env, error::Error, fmt, fs::File, io::{self, Read, Stdout},
+};
 
 mod img;
 pub mod table;

@@ -1,7 +1,6 @@
-use std::borrow::Cow;
-use std::io::{Result, Write};
-use std::iter;
-
+use std::{
+    borrow::Cow, io::{Result, Write}, iter,
+};
 pub trait TableFns<'a> {
     fn set_table_state(&mut self, state: TableState);
     fn set_width(&mut self, w: usize);
@@ -140,7 +139,7 @@ impl Default for TableState {
 }
 
 macro_rules! impl_table {
-    ($name:ident) => (
+    ($name:ident) => {
         impl<'a> TableFns<'a> for $name<'a> {
             fn table(&self) -> &[Cow<'a, str>] {
                 self.table.as_slice()
@@ -178,7 +177,7 @@ macro_rules! impl_table {
                 self.width
             }
         }
-    )
+    };
 }
 
 #[derive(Debug, Default)]

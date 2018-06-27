@@ -1,15 +1,12 @@
-use std::borrow::Cow;
-use std::collections::HashMap;
-use std::fmt::Debug;
-use std::io::{Result, Write};
-
 use pulldown_cmark::{Alignment, Event, Tag};
-use syntect::easy::HighlightLines;
-use syntect::highlighting::{FontStyle, Style, ThemeSet};
-use syntect::parsing::SyntaxSet;
+use std::{
+    borrow::Cow, collections::HashMap, fmt::Debug, io::{Result, Write},
+};
+use syntect::{
+    easy::HighlightLines, highlighting::{FontStyle, Style, ThemeSet}, parsing::SyntaxSet,
+};
 use table::{AsciiTable, Table, TableState, UnicodeTable};
-use termion::color;
-use termion::style;
+use termion::{color, style};
 
 lazy_static! {
     static ref RESET_COLOR: String = format!("{}", color::Fg(color::Reset));
