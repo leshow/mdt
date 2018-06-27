@@ -3,7 +3,7 @@ sudo: false
 language: rust
 
 rust:
-  - 1.23.0
+  - 1.27.0
   - stable
   - nightly
 
@@ -18,7 +18,7 @@ jobs:
   include:
     - stage: format
       before_install: rustup component add rustfmt-preview
-      script: cargo fmt -- --write-mode=diff
+      script: cargo fmt -- --check
       rust: beta
 
 stages:
