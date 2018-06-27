@@ -11,7 +11,11 @@ use self::MarkdownError::*;
 use getopts::Options as GetOpts;
 use pulldown_cmark::{Options, Parser, OPTION_ENABLE_FOOTNOTES, OPTION_ENABLE_TABLES};
 use std::{
-    env, error::Error, fmt, fs::File, io::{self, Read, Stdout},
+    env,
+    error::Error,
+    fmt,
+    fs::File,
+    io::{self, Read, Stdout},
 };
 
 mod img;

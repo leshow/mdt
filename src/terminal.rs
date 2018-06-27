@@ -1,9 +1,14 @@
 use pulldown_cmark::{Alignment, Event, Tag};
 use std::{
-    borrow::Cow, collections::HashMap, fmt::Debug, io::{Result, Write},
+    borrow::Cow,
+    collections::HashMap,
+    fmt::Debug,
+    io::{Result, Write},
 };
 use syntect::{
-    easy::HighlightLines, highlighting::{FontStyle, Style, ThemeSet}, parsing::SyntaxSet,
+    easy::HighlightLines,
+    highlighting::{FontStyle, Style, ThemeSet},
+    parsing::SyntaxSet,
 };
 use table::{AsciiTable, Table, TableState, UnicodeTable};
 use termion::{color, style};

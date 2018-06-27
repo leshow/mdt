@@ -1,5 +1,7 @@
 use std::{
-    borrow::Cow, io::{Result, Write}, iter,
+    borrow::Cow,
+    io::{Result, Write},
+    iter,
 };
 pub trait TableFns<'a> {
     fn set_table_state(&mut self, state: TableState);
