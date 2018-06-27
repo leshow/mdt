@@ -16,38 +16,9 @@ lazy_static! {
     static ref RESET_STYLE: String = format!("{}", style::Reset);
 }
 
-// to simplify creating variants
 pub type TermAscii<'a> = Terminal<'a, AsciiTable<'a>>;
 pub type TermUnicode<'a> = Terminal<'a, UnicodeTable<'a>>;
 
-pub enum TermStyle<'a> {
-    Ascii(TermAscii<'a>),
-    Unicode(TermUnicode<'a>),
-}
-
-impl<'a> TermStyle<'a> {
-    pub fn ascii(term_size: (u16, u16), truecolor: bool) -> Self {
-        TermStyle::Ascii(TermAscii::new(term_size, truecolor))
-    }
-    pub fn unicode(term_size: (u16, u16), truecolor: bool) -> Self {
-        TermStyle::Unicode(TermUnicode::new(term_size, truecolor))
-    }
-}
-
-impl<'a, I, W> MDParser<'a, I, W> for TermStyle<'a>
-where
-    I: Iterator<Item = Event<'a>>,
-    W: Write,
-{
-    fn parse(&mut self, iter: I, w: &mut W) -> Result<()> {
-        match self {
-            &mut TermStyle::Ascii(ref mut t) => t.parse(iter, w),
-            &mut TermStyle::Unicode(ref mut t) => t.parse(iter, w),
-        }
-    }
-}
-
-// main trait impl
 pub trait MDParser<'a, I, W>
 where
     I: Iterator<Item = Event<'a>>,

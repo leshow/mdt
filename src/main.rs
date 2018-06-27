@@ -19,15 +19,9 @@ use std::io::{self, Read, Stdout};
 mod img;
 pub mod table;
 pub mod terminal;
-use terminal::{MDParser, TermAscii, TermStyle, TermUnicode};
+use terminal::{MDParser, TermAscii, TermUnicode};
 
-fn main() {
-    if let Err(e) = run() {
-        println!("Error countered-- {:?}", e);
-    }
-}
-
-fn run() -> MDResult<()> {
+fn main() -> MDResult {
     // parse args
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
@@ -45,6 +39,7 @@ fn run() -> MDResult<()> {
         print_usage(&program, opts);
         return Ok(());
     }
+    let truecolor = matches.opt_present("t");
 
     // get input
     let mut input = String::new();
@@ -61,17 +56,15 @@ fn run() -> MDResult<()> {
 
     // make parser
     let p = Parser::new_ext(&input, opts);
-    // dynamic dispatch
-    // let mut terminal: Box<MDParser<Parser, Stdout>> = if
-    // matches.opt_present("a") { Box::new(TermAscii::new(term_size,
-    // truecolor)) } else {
-    //     Box::new(TermUnicode::new(term_size, truecolor))
-    // };
-
     let term_size = termion::terminal_size()?;
-    let mut terminal = make_parser(&matches, term_size);
-    terminal.parse(p, &mut io::stdout())?;
 
+    // dynamic
+    let mut terminal: Box<dyn MDParser<Parser, Stdout>> = if matches.opt_present("a") {
+        Box::new(TermAscii::new(term_size, truecolor))
+    } else {
+        Box::new(TermUnicode::new(term_size, truecolor))
+    };
+    // static
     // if matches.opt_present("a") {
     //     let mut terminal = TermAscii::new(term_size, truecolor);
     //     terminal.parse(p, &mut io::stdout())?;
@@ -79,23 +72,13 @@ fn run() -> MDResult<()> {
     //     let mut terminal = TermUnicode::new(term_size, truecolor);
     //     terminal.parse(p, &mut io::stdout())?;
     // };
-
+    terminal.parse(p, &mut io::stdout())?;
     Ok(())
 }
 
 fn print_usage(program: &str, opts: GetOpts) {
     let brief = format!("Usage: {} FILE [options]", program);
     print!("{}", opts.usage(&brief));
-}
-
-// I'm not convinced this is worthwhile over the aliases
-fn make_parser(matches: &getopts::Matches, term_size: (u16, u16)) -> TermStyle {
-    let truecolor = matches.opt_present("t");
-    if matches.opt_present("a") {
-        TermStyle::ascii(term_size, truecolor)
-    } else {
-        TermStyle::unicode(term_size, truecolor)
-    }
 }
 
 // Error
@@ -106,7 +89,7 @@ pub enum MarkdownError {
     Img(immeta::Error),
 }
 
-pub type MDResult<T> = Result<T, MarkdownError>;
+pub type MDResult<T = ()> = Result<T, MarkdownError>;
 
 impl From<io::Error> for MarkdownError {
     fn from(e: io::Error) -> MarkdownError {
