@@ -21,7 +21,7 @@ use std::{
 mod img;
 pub mod table;
 pub mod terminal;
-use terminal::{MDParser, TermAscii, TermUnicode};
+pub use terminal::{MDParser, TermAscii, TermUnicode};
 
 fn main() -> MDResult {
     // parse args
@@ -38,7 +38,7 @@ fn main() -> MDResult {
     opts.optflag("h", "help", "print this help menu");
     let matches = opts.parse(&args[1..])?;
     if matches.opt_present("h") {
-        print_usage(&program, opts);
+        print_usage(&program, &opts);
         return Ok(());
     }
     let truecolor = matches.opt_present("t");
@@ -66,6 +66,7 @@ fn main() -> MDResult {
     } else {
         Box::new(TermUnicode::new(term_size, truecolor))
     };
+    terminal.parse(p, &mut io::stdout())?;
     // static
     // if matches.opt_present("a") {
     //     let mut terminal = TermAscii::new(term_size, truecolor);
@@ -74,11 +75,10 @@ fn main() -> MDResult {
     //     let mut terminal = TermUnicode::new(term_size, truecolor);
     //     terminal.parse(p, &mut io::stdout())?;
     // };
-    terminal.parse(p, &mut io::stdout())?;
     Ok(())
 }
 
-fn print_usage(program: &str, opts: GetOpts) {
+fn print_usage(program: &str, opts: &GetOpts) {
     let brief = format!("Usage: {} FILE [options]", program);
     print!("{}", opts.usage(&brief));
 }

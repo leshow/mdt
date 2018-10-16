@@ -10,7 +10,7 @@ use syntect::{
     highlighting::{FontStyle, Style, ThemeSet},
     parsing::SyntaxSet,
 };
-use table::{AsciiTable, Table, TableState, UnicodeTable};
+pub use table::{AsciiTable, Table, TableState, UnicodeTable};
 use termion::{color, style};
 
 lazy_static! {
@@ -73,28 +73,24 @@ where
         }
     }
     fn set_table_state(&mut self, table_state: TableState) {
-        match *self {
-            State::Table { ref mut table, .. } => table.set_table_state(table_state),
-            _ => {}
+        if let State::Table { ref mut table, .. } = *self {
+            table.set_table_state(table_state);
         }
     }
     fn table_draw<W: Write>(&mut self, buf: &mut W) -> Result<()> {
-        match *self {
-            State::Table { ref mut table, .. } => table.draw(buf)?,
-            _ => {}
+        if let State::Table { ref mut table, .. } = *self {
+            table.draw(buf)?;
         }
         Ok(())
     }
     fn table_inc_index(&mut self) {
-        match *self {
-            State::Table { ref mut table, .. } => table.inc_index(),
-            _ => {}
+        if let State::Table { ref mut table, .. } = *self {
+            table.inc_index();
         }
     }
     fn set_table_index(&mut self, idx: usize) {
-        match *self {
-            State::Table { ref mut table, .. } => table.set_index(idx),
-            _ => {}
+        if let State::Table { ref mut table, .. } = *self {
+            table.set_index(idx);
         }
     }
     fn code(lang: Option<String>) -> State<T> {
@@ -121,7 +117,7 @@ where
     fn inc_li<W: Write>(&mut self, buf: &mut W) -> Result<()> {
         match *self {
             State::Ol { ref mut items } => {
-                *items = *items + 1;
+                *items += 1;
                 write!(buf, " {}", &(items.to_string() + ". "))?;
             }
             _ => {
@@ -168,7 +164,7 @@ where
                 }
                 Event::End(tag) => {
                     self.decrement();
-                    self.end_tag(tag, w)?;
+                    self.end_tag(&tag, w)?;
                 }
                 Event::InlineHtml(html) | Event::Html(html) => self.state.write_buf(w, html)?,
                 Event::Text(text) => self.state.write_buf(w, text)?,
@@ -336,7 +332,7 @@ where
         Ok(())
     }
 
-    fn end_tag<W: Write>(&mut self, tag: Tag<'a>, buf: &mut W) -> Result<()> {
+    fn end_tag<W: Write>(&mut self, tag: &Tag<'a>, buf: &mut W) -> Result<()> {
         match tag {
             Tag::Paragraph => fresh_line(buf)?,
             Tag::Rule => (),
@@ -395,34 +391,33 @@ where
     fn hard_break(&mut self) {}
 
     fn write_code<W: Write>(&mut self, buf: &mut W) -> Result<()> {
-        match self.state {
-            State::Code {
-                ref mut code,
-                ref mut lang,
-            } => {
-                let ts = &self.theme_set.themes["Solarized (dark)"];
-                let ps = &self.syntax_set;
+        if let State::Code {
+            ref mut code,
+            ref mut lang,
+        } = self.state
+        {
+            let ts = &self.theme_set.themes["Solarized (dark)"];
+            let ps = &self.syntax_set;
 
-                let syntax = if let Some(ref lang) = *lang {
-                    ps.find_syntax_by_token(lang)
-                } else {
-                    ps.find_syntax_by_first_line(&code)
-                }.unwrap_or_else(|| ps.find_syntax_plain_text());
-
-                let mut h = HighlightLines::new(syntax, ts);
-                for line in code.lines() {
-                    let regions: Vec<(Style, &str)> = h.highlight(&line);
-                    if self.truecolor {
-                        as_24_bit_terminal_escaped(buf, &regions[..], false)?;
-                    } else {
-                        write_as_ansi(buf, &regions)?;
-                    }
-                    write!(buf, "\n")?;
-                }
-                // Clear the formatting
-                write!(buf, "\x1b[0m")?;
+            let syntax = if let Some(ref lang) = *lang {
+                ps.find_syntax_by_token(lang)
+            } else {
+                ps.find_syntax_by_first_line(&code)
             }
-            _ => {}
+            .unwrap_or_else(|| ps.find_syntax_plain_text());
+
+            let mut h = HighlightLines::new(syntax, ts);
+            for line in code.lines() {
+                let regions: Vec<(Style, &str)> = h.highlight(&line, &ps);
+                if self.truecolor {
+                    as_24_bit_terminal_escaped(buf, &regions[..], false)?;
+                } else {
+                    write_as_ansi(buf, &regions)?;
+                }
+                write!(buf, "\n")?;
+            }
+            // Clear the formatting
+            write!(buf, "\x1b[0m")?;
         }
         Ok(())
     }

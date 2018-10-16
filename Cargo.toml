@@ -1,12 +1,12 @@
 [package]
 name = "mdt"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Evan Cameron <cameron.evan@gmail.com>"]
 
 [dependencies]
-pulldown-cmark= { version ="0.1.0", default-features = false }
+pulldown-cmark= { version ="0.1.2", default-features = false }
 termion = "1.5.1"
-syntect = "2.0.0"
-lazy_static = "1.0"
+syntect = "3.0.1"
+lazy_static = "1.1.0"
 getopts = "0.2"
-immeta = "0.3"
+immeta = "0.4.0"
