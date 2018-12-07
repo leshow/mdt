@@ -2,6 +2,7 @@
 name = "mdt"
 version = "0.2.0"
 authors = ["Evan Cameron <cameron.evan@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 pulldown-cmark= { version ="0.1.2", default-features = false }

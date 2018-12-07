@@ -1,3 +1,4 @@
+pub use crate::table::{AsciiTable, Table, TableState, UnicodeTable};
 use pulldown_cmark::{Alignment, Event, Tag};
 use std::{
     borrow::Cow,
@@ -10,7 +11,6 @@ use syntect::{
     highlighting::{FontStyle, Style, ThemeSet},
     parsing::SyntaxSet,
 };
-pub use table::{AsciiTable, Table, TableState, UnicodeTable};
 use termion::{color, style};
 
 lazy_static! {

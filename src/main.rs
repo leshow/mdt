@@ -1,10 +1,5 @@
-extern crate getopts;
-extern crate immeta;
 #[macro_use]
 extern crate lazy_static;
-extern crate pulldown_cmark;
-extern crate syntect;
-extern crate termion;
 
 // Any type that derives Fail can be cast into Error
 use self::MarkdownError::*;
@@ -21,7 +16,7 @@ use std::{
 mod img;
 pub mod table;
 pub mod terminal;
-pub use terminal::{MDParser, TermAscii, TermUnicode};
+pub use crate::terminal::{MDParser, TermAscii, TermUnicode};
 
 fn main() -> MDResult {
     // parse args
